@@ -234,6 +234,182 @@
       initFirebaseSync();
     }
     
+    // ==============================================
+    // MULTI-COMPANY MANAGEMENT FUNCTIONS
+    // ==============================================
+    
+    let companyIdCounter = 0;
+    let currentDailyEntryForLR = null;
+    
+    function generateCompanyId() {
+      return `comp_${Date.now()}_${++companyIdCounter}`;
+    }
+    
+    function addCompanyRow(companyData = null) {
+      const template = document.getElementById('companyRowTemplate');
+      const container = document.getElementById('companiesContainer');
+      
+      if (!template || !container) return;
+      
+      const clone = template.content.cloneNode(true);
+      const companyRow = clone.querySelector('.company-row');
+      const companyId = companyData?.id || generateCompanyId();
+      
+      companyRow.setAttribute('data-company-id', companyId);
+      
+      // Populate company select
+      const companySelect = clone.querySelector('.company-select');
+      populateCompanySelect(companySelect);
+      
+      // Populate party select
+      const partySelect = clone.querySelector('.party-select');
+      populatePartySelect(partySelect);
+      
+      // If editing, fill in existing data
+      if (companyData) {
+        companySelect.value = companyData.companyName || '';
+        partySelect.value = companyData.partyName || '';
+        clone.querySelector('input[name="from[]"]').value = companyData.from || '';
+        clone.querySelector('input[name="to[]"]').value = companyData.to || '';
+        clone.querySelector('input[name="companyRate[]"]').value = companyData.companyRate || '';
+      }
+      
+      container.appendChild(clone);
+      
+      // Update remove button visibility
+      updateRemoveButtons();
+    }
+    
+    function removeCompanyRow(button) {
+      const companyRow = button.closest('.company-row');
+      if (companyRow) {
+        companyRow.remove();
+        updateRemoveButtons();
+      }
+    }
+    
+    function updateRemoveButtons() {
+      const container = document.getElementById('companiesContainer');
+      if (!container) return;
+      
+      const rows = container.querySelectorAll('.company-row');
+      
+      // Hide remove button if only one company row exists
+      rows.forEach((row, index) => {
+        const removeBtn = row.querySelector('button[onclick^="removeCompanyRow"]');
+        if (removeBtn) {
+          removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+        }
+      });
+    }
+    
+    function populateCompanySelect(selectElement) {
+      if (!selectElement) return;
+      
+      // Get unique companies from all records
+      const companies = [...new Set(allRecords
+        .filter(r => r.type === 'daily_register' && r.companyName)
+        .map(r => r.companyName))];
+      
+      // Also get companies from companies array
+      allRecords
+        .filter(r => r.type === 'daily_register' && r.companies)
+        .forEach(r => {
+          r.companies.forEach(c => {
+            if (c.companyName && !companies.includes(c.companyName)) {
+              companies.push(c.companyName);
+            }
+          });
+        });
+      
+      // Clear existing options except first
+      selectElement.innerHTML = '<option value="">Select Company</option>';
+      
+      companies.sort().forEach(company => {
+        const option = document.createElement('option');
+        option.value = company;
+        option.textContent = company;
+        selectElement.appendChild(option);
+      });
+    }
+    
+    function populatePartySelect(selectElement) {
+      if (!selectElement) return;
+      
+      // Get unique parties from all records
+      const parties = [...new Set(allRecords
+        .filter(r => r.type === 'daily_register' && r.partyName)
+        .map(r => r.partyName))];
+      
+      // Also get parties from companies array
+      allRecords
+        .filter(r => r.type === 'daily_register' && r.companies)
+        .forEach(r => {
+          r.companies.forEach(c => {
+            if (c.partyName && !parties.includes(c.partyName)) {
+              parties.push(c.partyName);
+            }
+          });
+        });
+      
+      // Clear existing options except first
+      selectElement.innerHTML = '<option value="">Select Party</option>';
+      
+      parties.sort().forEach(party => {
+        const option = document.createElement('option');
+        option.value = party;
+        option.textContent = party;
+        selectElement.appendChild(option);
+      });
+    }
+    
+    function getCompaniesFromForm() {
+      const container = document.getElementById('companiesContainer');
+      if (!container) return [];
+      
+      const companyRows = container.querySelectorAll('.company-row');
+      const companies = [];
+      
+      companyRows.forEach(row => {
+        const companyId = row.getAttribute('data-company-id');
+        const companyName = row.querySelector('select[name="companyName[]"]')?.value || '';
+        const partyName = row.querySelector('select[name="partyName[]"]')?.value || '';
+        const from = row.querySelector('input[name="from[]"]')?.value || '';
+        const to = row.querySelector('input[name="to[]"]')?.value || '';
+        const companyRate = parseFloat(row.querySelector('input[name="companyRate[]"]')?.value) || 0;
+        
+        if (companyName && from && to) {
+          companies.push({
+            id: companyId,
+            companyName,
+            partyName,
+            from,
+            to,
+            companyRate,
+            lrNumbers: []  // Will be populated when LRs are linked
+          });
+        }
+      });
+      
+      return companies;
+    }
+    
+    function initializeCompanyManagement() {
+      // Add first company row by default when form loads
+      const container = document.getElementById('companiesContainer');
+      if (container && container.children.length === 0) {
+        addCompanyRow();
+      }
+    }
+    
+    // Make functions globally available
+    window.addCompanyRow = addCompanyRow;
+    window.removeCompanyRow = removeCompanyRow;
+    
+    // ==============================================
+    // END MULTI-COMPANY MANAGEMENT FUNCTIONS
+    // ==============================================
+    
     // Function to toggle Add Daily Register form visibility
     function toggleAddDailyRegisterForm() {
       const formSection = document.getElementById('dailyRegisterFormSection');
@@ -816,9 +992,17 @@
       
       const formData = new FormData(e.target);
       
-      const lrData = {
+            
+      // ✅ NEW: Get company ID
+      const companyId = formData.get('companyId');
+      if (!companyId) {
+        alert('Please select a company');
+        return;
+      }
+            const lrData = {
         lrNumber: formData.get('lrNumber'),
-        lrType: formData.get('lrType') || 'To Be Billed', // Default to 'To Be Billed' for backward compatibility
+        lrType: formData.get('lrType') || 'To Be Billed',
+        companyId: companyId,  // ✅ NEW: Store company ID // Default to 'To Be Billed' for backward compatibility
         productName: formData.get('productName'),
         weight: parseFloat(formData.get('weight')) || 0,
         quantity: parseFloat(formData.get('quantity')) || 0,
@@ -833,11 +1017,27 @@
       
       currentDailyEntryForLR.lrs.push(lrData);
       
+      // ✅ NEW: Update company's LR numbers array
+      if (currentDailyEntryForLR.companies) {
+        const company = currentDailyEntryForLR.companies.find(c => c.id === companyId);
+        if (company) {
+          if (!company.lrNumbers) company.lrNumbers = [];
+          company.lrNumbers.push(lrData.lrNumber);
+        }
+      }
+      
       try {
         // Update in cloud
         const result = await window.dataSdk.update(currentDailyEntryForLR);
         if (result.isOk) {
           e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
           updateLRListForEntry(currentDailyEntryForLR);
           alert('LR added successfully!');
         }
@@ -859,7 +1059,19 @@
       
       const formData = new FormData(e.target);
       const commissionApplicable = formData.get('commissionApplicable') === 'on';
-      const commissionAmount = commissionApplicable ? (parseFloat(formData.get('commission')) || 0) : 0;
+      const commissionAmount = commissionApplicable ? (parseFloat(formData.get('commission')) || 0) : 0;      
+      // ✅ NEW: Get companies from form
+      const companies = getCompaniesFromForm();
+      
+      if (companies.length === 0) {
+        showInlineMessage('Please add at least one company entry', 'error');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+        }
+        return;
+      }
+      
       
       let result;
       
@@ -874,15 +1086,15 @@
           data.date = formData.get('date');
           data.truckNumber = formData.get('truckNumber');
           data.truckSize = formData.get('truckSize');
-          data.companyName = formData.get('companyName');
-          data.partyName = formData.get('partyName');
-          data.from = formData.get('from');
-          data.to = formData.get('to');
-          data.bookingType = formData.get('bookingType');
-          data.typeOfBooking = formData.get('typeOfBooking');
-          data.placedBy = formData.get('placedBy');
-          data.truckRate = parseFloat(formData.get('truckRate')) || 0;
-          data.companyRate = parseFloat(formData.get('companyRate')) || 0;
+          // ✅ NEW: Update companies array
+          data.companies = companies;
+          
+          // Keep old fields empty for backward compatibility
+          data.companyName = '';
+          data.partyName = '';
+          data.from = '';
+          data.to = '';
+          data.companyRate = 0;
           data.commissionApplicable = commissionApplicable;
           data.commission = commissionAmount;
           data.commissionTakenBy = formData.get('commissionTakenBy') || '';
@@ -901,15 +1113,14 @@
           date: formData.get('date'),
           truckNumber: formData.get('truckNumber'),
           truckSize: formData.get('truckSize'),
-          companyName: formData.get('companyName'),
-          partyName: formData.get('partyName'),
-          from: formData.get('from'),
-          to: formData.get('to'),
-          bookingType: formData.get('bookingType'),
-          typeOfBooking: formData.get('typeOfBooking'),
-          placedBy: formData.get('placedBy'),
-          truckRate: parseFloat(formData.get('truckRate')) || 0,
-          companyRate: parseFloat(formData.get('companyRate')) || 0,
+          companies: companies,
+          
+          // Keep old fields empty for backward compatibility
+          companyName: '',
+          partyName: '',
+          from: '',
+          to: '',
+          companyRate: 0,
           commissionApplicable: commissionApplicable,
           commission: commissionAmount,
           commissionTakenBy: formData.get('commissionTakenBy') || '',
@@ -932,6 +1143,13 @@
       
       if (result.isOk) {
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         
         // Reset editing state
         window.editingDailyRegisterId = null;
@@ -1051,6 +1269,13 @@
             if (createAnother) {
               // Keep the same daily entry selected and reset only the LR-specific fields
               e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
               const selectElem = document.getElementById('selectDailyEntryNonBooking');
               if (selectElem) {
                 selectElem.value = dailyEntryId;
@@ -1060,6 +1285,13 @@
             } else {
               // Reset everything including the daily entry selection
               e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
               const selectElem = document.getElementById('selectDailyEntryNonBooking');
               if (selectElem) selectElem.value = '';
             }
@@ -1083,7 +1315,13 @@
         if (!dailyEntryId) {
           showInlineMessage('Please select a daily register entry first', 'error');
           return;
-        }
+        }    
+    // ✅ NEW: Check if at least one LR is selected
+    const selectedCheckboxes = document.querySelectorAll('.lr-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+      showInlineMessage('Please select at least one LR for this challan', 'error');
+      return;
+    }
       }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -1098,6 +1336,7 @@
         type: 'booking_lr',
         lrNumber: formData.get('lrNumber'),
         lrType: formData.get('lrType') || 'To Be Billed',
+        companyId: companyId,  // ✅ NEW: Store company ID
         lrDate: formData.get('lrDate'),
         truckNumber: formData.get('truckNumber'),
         consignorName: formData.get('consignorName'),
@@ -1184,6 +1423,13 @@
             if (createAnother) {
               // Keep the same daily entry selected and reset only the LR-specific fields
               e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
               const selectElem = document.getElementById('selectDailyEntry');
               if (selectElem) {
                 selectElem.value = dailyEntryId;
@@ -1193,6 +1439,13 @@
             } else {
               // Reset everything including the daily entry selection
               e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
               const selectElem = document.getElementById('selectDailyEntry');
               if (selectElem) selectElem.value = '';
             }
@@ -1231,6 +1484,13 @@
         const result = await window.dataSdk.update(lr);
         if (result.isOk) {
           e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
           populateLRSelect();
         }
       }
@@ -1267,10 +1527,71 @@
         lr.status = 'Deduction Recorded';
         await window.dataSdk.update(lr);
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         populateLRForDeductionSelect();
       }
     }
 
+    
+    // ✅ NEW: Function to update selected companies summary
+    function updateSelectedCompaniesSummary() {
+      const checkboxes = document.querySelectorAll('.lr-checkbox:checked');
+      const summaryContent = document.getElementById('companiesSummaryContent');
+      const summarySection = document.getElementById('selectedCompaniesSummary');
+      
+      if (!summaryContent || !summarySection) return;
+      
+      if (checkboxes.length === 0) {
+        summarySection.style.display = 'none';
+        return;
+      }
+      
+      // Group by company
+      const companiesMap = new Map();
+      
+      checkboxes.forEach(checkbox => {
+        const companyId = checkbox.dataset.companyId;
+        const companyName = checkbox.dataset.companyName;
+        const companyRate = parseFloat(checkbox.dataset.companyRate) || 0;
+        const lrNumber = checkbox.dataset.lrNumber;
+        
+        if (!companiesMap.has(companyId)) {
+          companiesMap.set(companyId, {
+            name: companyName,
+            rate: companyRate,
+            lrNumbers: []
+          });
+        }
+        
+        companiesMap.get(companyId).lrNumbers.push(lrNumber);
+      });
+      
+      // Generate summary HTML
+      let summaryHTML = '<div class="space-y-3">';
+      companiesMap.forEach((data, companyId) => {
+        summaryHTML += `
+          <div class="border-b border-blue-200 pb-2">
+            <div class="font-semibold text-gray-900">${data.name}</div>
+            <div class="text-sm text-gray-600">Rate: ₹${data.rate.toLocaleString('en-IN')}</div>
+            <div class="text-sm text-gray-600">LRs: ${data.lrNumbers.join(', ')}</div>
+          </div>
+        `;
+      });
+      summaryHTML += '</div>';
+      
+      summaryContent.innerHTML = summaryHTML;
+      summarySection.style.display = 'block';
+    }
+    
+    // Make function globally available
+    window.updateSelectedCompaniesSummary = updateSelectedCompaniesSummary;
+    
     async function handleChallanBookSubmit(e) {
       e.preventDefault();
       
@@ -1283,7 +1604,13 @@
         if (!dailyEntryId) {
           showInlineMessage('Please select a daily register entry first', 'error');
           return;
-        }
+        }    
+    // ✅ NEW: Check if at least one LR is selected
+    const selectedCheckboxes = document.querySelectorAll('.lr-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+      showInlineMessage('Please select at least one LR for this challan', 'error');
+      return;
+    }
       }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -1351,6 +1678,56 @@
           data.linkedLRCount = 0;
         }
         
+        
+        // ✅ NEW: Get selected LRs
+        const selectedCheckboxes = document.querySelectorAll('.lr-checkbox:checked');
+        const selectedLRs = [];
+        const lrNumbers = [];
+        const companiesInChallan = new Map();
+        
+        selectedCheckboxes.forEach(checkbox => {
+          const lrId = checkbox.dataset.lrId;
+          const lrNumber = checkbox.dataset.lrNumber;
+          const companyId = checkbox.dataset.companyId;
+          const companyName = checkbox.dataset.companyName;
+          const companyRate = parseFloat(checkbox.dataset.companyRate) || 0;
+          
+          selectedLRs.push({
+            lrId: lrId,
+            lrNumber: lrNumber,
+            companyId: companyId,
+            companyName: companyName,
+            companyRate: companyRate
+          });
+          
+          lrNumbers.push(lrNumber);
+          
+          // Track companies
+          if (!companiesInChallan.has(companyId)) {
+            companiesInChallan.set(companyId, {
+              name: companyName,
+              rate: companyRate,
+              lrCount: 0
+            });
+          }
+          companiesInChallan.get(companyId).lrCount++;
+        });
+        
+        // Store selected LRs and company info
+        data.selectedLRs = selectedLRs;
+        data.lrNumbers = lrNumbers.join(', ');
+        data.linkedLRCount = selectedLRs.length;
+        
+        // Store companies summary
+        data.companiesSummary = Array.from(companiesInChallan.entries()).map(([id, info]) => ({
+          companyId: id,
+          companyName: info.name,
+          companyRate: info.rate,
+          lrCount: info.lrCount
+        }));
+        
+        console.log(`✅ Creating Challan with ${selectedLRs.length} LR(s) from ${companiesInChallan.size} company(ies)`);
+        
         data.createdAt = new Date().toISOString();
         result = await window.dataSdk.create(data);
       }
@@ -1388,6 +1765,13 @@
           
           showInlineMessage('Challan created successfully!', 'success');
           e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
           document.getElementById('selectDailyForChallan').value = '';
         }
       } else {
@@ -1424,17 +1808,77 @@
           (r.dailyEntryId === entryId || r.dailyRegisterId === entryId)
         );
         
-        const lrNumbersDisplay = document.getElementById('challanLRNumbers');
-        const lrNumbersContainer = document.getElementById('challanLRNumbersDisplay');
         
-        if (linkedLRs.length > 0) {
-          const lrNumbers = linkedLRs.map(lr => lr.lrNumber).filter(Boolean).join(', ');
-          lrNumbersDisplay.innerHTML = `${lrNumbers} <span style="color: #059669; font-size: 0.875rem;">(${linkedLRs.length} LR${linkedLRs.length > 1 ? 's' : ''})</span>`;
-          lrNumbersContainer.style.display = 'block';
-        } else {
-          lrNumbersDisplay.innerHTML = '<span style="color: #9ca3af;">No LRs linked to this Daily Register entry</span>';
-          lrNumbersContainer.style.display = 'block';
-        }
+    // ✅ NEW: Display LR checkboxes for selection
+    const lrCheckboxContainer = document.getElementById('challanLRCheckboxes');
+    const lrSelectionSection = document.getElementById('challanLRSelectionSection');
+    
+    // Also check for LRs in the lrs array of daily register
+    const inlineLRs = entry.lrs || [];
+    
+    if (linkedLRs.length > 0 || inlineLRs.length > 0) {
+      let checkboxesHTML = '<div class="space-y-2">';
+      
+      // Process inline LRs (from daily register)
+      inlineLRs.forEach((lr, index) => {
+        const company = entry.companies?.find(c => c.id === lr.companyId);
+        const companyName = company?.companyName || entry.companyName || 'Unknown';
+        const companyRate = company?.companyRate || 0;
+        
+        checkboxesHTML += `
+          <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
+            <input type="checkbox" 
+                   class="lr-checkbox mt-1 w-4 h-4 text-blue-600 rounded" 
+                   data-lr-type="inline"
+                   data-lr-index="${index}"
+                   data-lr-number="${lr.lrNumber}"
+                   data-company-id="${lr.companyId || ''}"
+                   data-company-name="${companyName}"
+                   data-company-rate="${companyRate}"
+                   onchange="updateSelectedCompaniesSummary()">
+            <div class="flex-1">
+              <div class="font-semibold text-gray-900">${lr.lrNumber}</div>
+              <div class="text-sm text-gray-600">Company: ${companyName}</div>
+              <div class="text-sm text-gray-600">Rate: ₹${companyRate.toLocaleString('en-IN')}</div>
+              <div class="text-xs text-gray-500">${lr.productName || ''} | ${lr.weight || 0} kg</div>
+            </div>
+          </label>
+        `;
+      });
+      
+      // Process linked LRs (separate booking_lr/non_booking_lr documents)
+      linkedLRs.forEach(lr => {
+        const company = entry.companies?.find(c => c.id === lr.companyId);
+        const companyName = company?.companyName || entry.companyName || 'Unknown';
+        const companyRate = company?.companyRate || 0;
+        
+        checkboxesHTML += `
+          <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
+            <input type="checkbox" 
+                   class="lr-checkbox mt-1 w-4 h-4 text-blue-600 rounded" 
+                   data-lr-id="${lr.__backendId}"
+                   data-lr-number="${lr.lrNumber}"
+                   data-company-id="${lr.companyId || ''}"
+                   data-company-name="${companyName}"
+                   data-company-rate="${companyRate}"
+                   onchange="updateSelectedCompaniesSummary()">
+            <div class="flex-1">
+              <div class="font-semibold text-gray-900">${lr.lrNumber}</div>
+              <div class="text-sm text-gray-600">Company: ${companyName}</div>
+              <div class="text-sm text-gray-600">Rate: ₹${companyRate.toLocaleString('en-IN')}</div>
+              <div class="text-xs text-gray-500">${lr.productName || ''} | ${lr.weight || 0} kg</div>
+            </div>
+          </label>
+        `;
+      });
+      
+      checkboxesHTML += '</div>';
+      lrCheckboxContainer.innerHTML = checkboxesHTML;
+      lrSelectionSection.style.display = 'block';
+    } else {
+      lrCheckboxContainer.innerHTML = '<p class="text-sm text-gray-500">No LRs linked to this Daily Register entry</p>';
+      lrSelectionSection.style.display = 'block';
+    }
         
         // Auto-fill Rate per Tonne from Daily Register truck rate
         if (entry.truckRate) {
@@ -1517,9 +1961,16 @@
         alert(`✅ Bill created successfully!\n${successCount} LR(s) added to bill ${billNumber}`);
         e.target.reset();
         
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
+        
         // Reset the LR items container to initial state
-        const container = document.getElementById('lrItemsContainer');
-        container.innerHTML = `
+        const lrContainer = document.getElementById('lrItemsContainer');
+        lrContainer.innerHTML = `
           <div class="lr-item flex gap-2 items-end p-3 bg-white rounded-lg border border-gray-200">
             <div class="flex-1">
               <label class="block text-xs font-medium text-gray-600 mb-1">Select LR</label>
@@ -1652,6 +2103,13 @@
       
       if (result.isOk) {
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         const selectedDetails = document.getElementById('selectedPaymentEntryDetails');
         if (selectedDetails) {
           selectedDetails.innerHTML = '<p class="text-gray-600">No entry selected. Select an entry above to see details and outstanding amounts.</p>';
@@ -1704,6 +2162,13 @@
         const result = await window.dataSdk.update(lr);
         if (result.isOk) {
           e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
           document.getElementById('courierDetailsField').classList.add('hidden');
           document.getElementById('selfDetailsField').classList.add('hidden');
           populateBilledLRSelect();
@@ -1740,6 +2205,13 @@
       
       if (result.isOk) {
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         showInlineMessage('Truck added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add truck. Please try again.', 'error');
@@ -1773,6 +2245,13 @@
       
       if (result.isOk) {
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         showInlineMessage('Company added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add company. Please try again.', 'error');
@@ -1806,6 +2285,13 @@
       
       if (result.isOk) {
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         showInlineMessage('Party added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add party. Please try again.', 'error');
@@ -1838,6 +2324,13 @@
       
       if (result.isOk) {
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         showInlineMessage('Staff added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add staff. Please try again.', 'error');
@@ -2928,6 +3421,13 @@
             document.getElementById('ledgerPaymentModal').classList.add('hidden');
             document.getElementById('ledgerPaymentModal').classList.remove('flex');
             e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
             showInlineMessage('Staff payment recorded successfully!', 'success');
             viewLedger();
           }
@@ -2962,6 +3462,13 @@
         document.getElementById('ledgerPaymentModal').classList.add('hidden');
         document.getElementById('ledgerPaymentModal').classList.remove('flex');
         e.target.reset();
+        
+        // Clear companies container and add one fresh row
+        const container = document.getElementById('companiesContainer');
+        if (container) {
+          container.innerHTML = '';
+          addCompanyRow();
+        }
         showInlineMessage(`Payment ${paymentAction === 'receive' ? 'received' : 'made'} successfully!`, 'success');
         viewLedger(); // Refresh the ledger to show the new transaction
       } else {
@@ -3814,6 +4321,7 @@
     }
 
     function updateDailyRegisterList() {
+      // ✅ Enhanced to display multiple companies
       const tbody = document.getElementById('dailyRegisterList');
       const entries = allRecords.filter(r => r.type === 'daily_register');
       
@@ -5102,7 +5610,7 @@
     }
 
     
-    let currentDailyEntryForLR = null;
+    // currentDailyEntryForLR already declared at top
     
     function openLRManagement(entryId) {
       const entry = allRecords.find(r => r.__backendId === entryId && r.type === 'daily_register');
