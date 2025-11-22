@@ -246,23 +246,27 @@
        </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Size *</label> <select name="truckSize" required class="input-field w-full"> <option value="">Select Size</option> <option value="6 Tyre">6 Tyre</option> <option value="10 Tyre">10 Tyre</option> <option value="12 Tyre">12 Tyre</option> <option value="14 Tyre">14 Tyre</option> <option value="Eicher">Eicher</option> <option value="Others">Others</option> </select>
        </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company *</label> <select name="companyName" required class="input-field w-full" id="dailyCompanySelect"> <option value="">Select Company</option> </select>
-       </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">Party</label> <select name="partyName" class="input-field w-full" id="dailyPartySelect"> <option value="">Select Party</option> </select>
-       </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">From *</label> <input type="text" name="from" required class="input-field w-full" placeholder="Origin City">
-       </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">To *</label> <input type="text" name="to" required class="input-field w-full" placeholder="Destination City">
-       </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Type *</label> <select name="bookingType" required class="input-field w-full"> <option value="">Select Type</option> <option value="To Pay">To Pay</option> <option value="To Be Billed">To Be Billed</option> </select>
        </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">Type of Booking *</label> <select name="typeOfBooking" required class="input-field w-full"> <option value="">Select Type</option> <option value="Booking">Booking</option> <option value="Non Booking">Non Booking</option> </select>
        </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">Placed By *</label> <select name="placedBy" required class="input-field w-full" id="dailyPlacedBySelect"> <option value="">Select Staff/Company</option> </select>
        </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Rate *</label> <input type="number" name="truckRate" required class="input-field w-full" placeholder="0" step="0.01">
+       
+       <!-- Multi-Company Section -->
+       <div class="md:col-span-2 lg:col-span-3 border-t pt-4 mt-4">
+        <div class="flex justify-between items-center mb-4">
+         <h3 class="text-lg font-semibold text-gray-900">📋 Company Details</h3>
+         <button type="button" onclick="addCompanyRow()" class="btn-secondary text-sm px-3 py-2">
+          ➕ Add Another Company
+         </button>
+        </div>
+        <div id="companiesContainer">
+         <!-- Company rows will be added here dynamically -->
+        </div>
        </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label> <input type="number" name="companyRate" required class="input-field w-full" placeholder="0" step="0.01">
+       
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Total Truck Rate *</label> <input type="number" name="truckRate" required class="input-field w-full" placeholder="0" step="0.01">
        </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2"> <input type="checkbox" id="commissionApplicable" name="commissionApplicable" class="mr-2"> Commission Applicable </label>
        </div>
@@ -289,6 +293,12 @@
       </div>
       
       <form id="addLRForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select Company *</label>
+        <select name="companyId" id="lrCompanySelect" required class="input-field w-full">
+         <option value="">Select Company</option>
+        </select>
+       </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Number *</label> 
         <input type="text" name="lrNumber" required class="input-field w-full" placeholder="LR-001">
        </div>
@@ -329,6 +339,49 @@
        </div>
       </div>
      </div>
+     
+     <!-- Company Row Template (Hidden) -->
+     <template id="companyRowTemplate">
+      <div class="company-row border border-gray-300 rounded-lg p-4 mb-4 bg-gray-50" data-company-id="">
+       <div class="flex justify-between items-center mb-3">
+        <h4 class="font-semibold text-gray-700">🏢 Company Entry</h4>
+        <button type="button" onclick="removeCompanyRow(this)" class="text-red-600 hover:text-red-800 text-sm font-medium">
+         🗑️ Remove
+        </button>
+       </div>
+       
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+         <select name="companyName[]" required class="input-field w-full company-select">
+          <option value="">Select Company</option>
+         </select>
+        </div>
+        
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Party Name</label>
+         <select name="partyName[]" class="input-field w-full party-select">
+          <option value="">Select Party</option>
+         </select>
+        </div>
+        
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">From *</label>
+         <input type="text" name="from[]" required class="input-field w-full" placeholder="Origin City">
+        </div>
+        
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">To *</label>
+         <input type="text" name="to[]" required class="input-field w-full" placeholder="Destination City">
+        </div>
+        
+        <div class="md:col-span-2">
+         <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+         <input type="number" name="companyRate[]" required class="input-field w-full" placeholder="0" step="0.01">
+        </div>
+       </div>
+      </div>
+     </template>
      
     </div><!-- End of Daily Register Tab -->
     <div id="lr-creation-tab" class="tab-content hidden">
@@ -579,11 +632,21 @@
        <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Select from Daily Register *</label> <select id="selectDailyForChallan" required class="input-field w-full"> <option value="">-- Select a daily register entry --</option> </select>
        </div>
        
-       <!-- LR Numbers Display -->
-       <div class="md:col-span-2 lg:col-span-3" id="challanLRNumbersDisplay" style="display: none;">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Linked LR Numbers</label>
-        <div class="input-field w-full bg-blue-50 border-blue-200" id="challanLRNumbers" style="min-height: 42px; display: flex; align-items: center; color: #1e40af; font-weight: 600;">
-          No LRs linked
+       <!-- LR Selection Section -->
+       <div class="md:col-span-2 lg:col-span-3" id="challanLRSelectionSection" style="display: none;">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select LRs for this Challan *</label>
+        <div class="border border-gray-300 rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+         <div id="challanLRCheckboxes">
+          <p class="text-sm text-gray-500">No LRs available</p>
+         </div>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">✅ Select one or more LRs to include in this challan</p>
+       </div>
+       
+       <!-- Selected Companies Summary -->
+       <div class="md:col-span-2 lg:col-span-3" id="selectedCompaniesSummary" style="display: none;">
+        <label class="block text-sm font-medium text-gray-700 mb-2">📊 Selected Companies & Rates</label>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4" id="companiesSummaryContent">
         </div>
        </div>
        
@@ -1838,3 +1901,4 @@
 
 </body>
 </html>
+
