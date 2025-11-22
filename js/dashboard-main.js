@@ -234,182 +234,6 @@
       initFirebaseSync();
     }
     
-    // ==============================================
-    // MULTI-COMPANY MANAGEMENT FUNCTIONS
-    // ==============================================
-    
-    let companyIdCounter = 0;
-    let currentDailyEntryForLR = null;
-    
-    function generateCompanyId() {
-      return `comp_${Date.now()}_${++companyIdCounter}`;
-    }
-    
-    function addCompanyRow(companyData = null) {
-      const template = document.getElementById('companyRowTemplate');
-      const container = document.getElementById('companiesContainer');
-      
-      if (!template || !container) return;
-      
-      const clone = template.content.cloneNode(true);
-      const companyRow = clone.querySelector('.company-row');
-      const companyId = companyData?.id || generateCompanyId();
-      
-      companyRow.setAttribute('data-company-id', companyId);
-      
-      // Populate company select
-      const companySelect = clone.querySelector('.company-select');
-      populateCompanySelect(companySelect);
-      
-      // Populate party select
-      const partySelect = clone.querySelector('.party-select');
-      populatePartySelect(partySelect);
-      
-      // If editing, fill in existing data
-      if (companyData) {
-        companySelect.value = companyData.companyName || '';
-        partySelect.value = companyData.partyName || '';
-        clone.querySelector('input[name="from[]"]').value = companyData.from || '';
-        clone.querySelector('input[name="to[]"]').value = companyData.to || '';
-        clone.querySelector('input[name="companyRate[]"]').value = companyData.companyRate || '';
-      }
-      
-      container.appendChild(clone);
-      
-      // Update remove button visibility
-      updateRemoveButtons();
-    }
-    
-    function removeCompanyRow(button) {
-      const companyRow = button.closest('.company-row');
-      if (companyRow) {
-        companyRow.remove();
-        updateRemoveButtons();
-      }
-    }
-    
-    function updateRemoveButtons() {
-      const container = document.getElementById('companiesContainer');
-      if (!container) return;
-      
-      const rows = container.querySelectorAll('.company-row');
-      
-      // Hide remove button if only one company row exists
-      rows.forEach((row, index) => {
-        const removeBtn = row.querySelector('button[onclick^="removeCompanyRow"]');
-        if (removeBtn) {
-          removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
-        }
-      });
-    }
-    
-    function populateCompanySelect(selectElement) {
-      if (!selectElement) return;
-      
-      // Get unique companies from all records
-      const companies = [...new Set(allRecords
-        .filter(r => r.type === 'daily_register' && r.companyName)
-        .map(r => r.companyName))];
-      
-      // Also get companies from companies array
-      allRecords
-        .filter(r => r.type === 'daily_register' && r.companies)
-        .forEach(r => {
-          r.companies.forEach(c => {
-            if (c.companyName && !companies.includes(c.companyName)) {
-              companies.push(c.companyName);
-            }
-          });
-        });
-      
-      // Clear existing options except first
-      selectElement.innerHTML = '<option value="">Select Company</option>';
-      
-      companies.sort().forEach(company => {
-        const option = document.createElement('option');
-        option.value = company;
-        option.textContent = company;
-        selectElement.appendChild(option);
-      });
-    }
-    
-    function populatePartySelect(selectElement) {
-      if (!selectElement) return;
-      
-      // Get unique parties from all records
-      const parties = [...new Set(allRecords
-        .filter(r => r.type === 'daily_register' && r.partyName)
-        .map(r => r.partyName))];
-      
-      // Also get parties from companies array
-      allRecords
-        .filter(r => r.type === 'daily_register' && r.companies)
-        .forEach(r => {
-          r.companies.forEach(c => {
-            if (c.partyName && !parties.includes(c.partyName)) {
-              parties.push(c.partyName);
-            }
-          });
-        });
-      
-      // Clear existing options except first
-      selectElement.innerHTML = '<option value="">Select Party</option>';
-      
-      parties.sort().forEach(party => {
-        const option = document.createElement('option');
-        option.value = party;
-        option.textContent = party;
-        selectElement.appendChild(option);
-      });
-    }
-    
-    function getCompaniesFromForm() {
-      const container = document.getElementById('companiesContainer');
-      if (!container) return [];
-      
-      const companyRows = container.querySelectorAll('.company-row');
-      const companies = [];
-      
-      companyRows.forEach(row => {
-        const companyId = row.getAttribute('data-company-id');
-        const companyName = row.querySelector('select[name="companyName[]"]')?.value || '';
-        const partyName = row.querySelector('select[name="partyName[]"]')?.value || '';
-        const from = row.querySelector('input[name="from[]"]')?.value || '';
-        const to = row.querySelector('input[name="to[]"]')?.value || '';
-        const companyRate = parseFloat(row.querySelector('input[name="companyRate[]"]')?.value) || 0;
-        
-        if (companyName && from && to) {
-          companies.push({
-            id: companyId,
-            companyName,
-            partyName,
-            from,
-            to,
-            companyRate,
-            lrNumbers: []  // Will be populated when LRs are linked
-          });
-        }
-      });
-      
-      return companies;
-    }
-    
-    function initializeCompanyManagement() {
-      // Add first company row by default when form loads
-      const container = document.getElementById('companiesContainer');
-      if (container && container.children.length === 0) {
-        addCompanyRow();
-      }
-    }
-    
-    // Make functions globally available
-    window.addCompanyRow = addCompanyRow;
-    window.removeCompanyRow = removeCompanyRow;
-    
-    // ==============================================
-    // END MULTI-COMPANY MANAGEMENT FUNCTIONS
-    // ==============================================
-    
     // Function to toggle Add Daily Register form visibility
     function toggleAddDailyRegisterForm() {
       const formSection = document.getElementById('dailyRegisterFormSection');
@@ -992,17 +816,9 @@
       
       const formData = new FormData(e.target);
       
-            
-      // ✅ NEW: Get company ID
-      const companyId = formData.get('companyId');
-      if (!companyId) {
-        alert('Please select a company');
-        return;
-      }
-            const lrData = {
+      const lrData = {
         lrNumber: formData.get('lrNumber'),
-        lrType: formData.get('lrType') || 'To Be Billed',
-        companyId: companyId,  // ✅ NEW: Store company ID // Default to 'To Be Billed' for backward compatibility
+        lrType: formData.get('lrType') || 'To Be Billed', // Default to 'To Be Billed' for backward compatibility
         productName: formData.get('productName'),
         weight: parseFloat(formData.get('weight')) || 0,
         quantity: parseFloat(formData.get('quantity')) || 0,
@@ -1017,27 +833,11 @@
       
       currentDailyEntryForLR.lrs.push(lrData);
       
-      // ✅ NEW: Update company's LR numbers array
-      if (currentDailyEntryForLR.companies) {
-        const company = currentDailyEntryForLR.companies.find(c => c.id === companyId);
-        if (company) {
-          if (!company.lrNumbers) company.lrNumbers = [];
-          company.lrNumbers.push(lrData.lrNumber);
-        }
-      }
-      
       try {
         // Update in cloud
         const result = await window.dataSdk.update(currentDailyEntryForLR);
         if (result.isOk) {
           e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
           updateLRListForEntry(currentDailyEntryForLR);
           alert('LR added successfully!');
         }
@@ -1059,19 +859,7 @@
       
       const formData = new FormData(e.target);
       const commissionApplicable = formData.get('commissionApplicable') === 'on';
-      const commissionAmount = commissionApplicable ? (parseFloat(formData.get('commission')) || 0) : 0;      
-      // ✅ NEW: Get companies from form
-      const companies = getCompaniesFromForm();
-      
-      if (companies.length === 0) {
-        showInlineMessage('Please add at least one company entry', 'error');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
-        }
-        return;
-      }
-      
+      const commissionAmount = commissionApplicable ? (parseFloat(formData.get('commission')) || 0) : 0;
       
       let result;
       
@@ -1086,15 +874,15 @@
           data.date = formData.get('date');
           data.truckNumber = formData.get('truckNumber');
           data.truckSize = formData.get('truckSize');
-          // ✅ NEW: Update companies array
-          data.companies = companies;
-          
-          // Keep old fields empty for backward compatibility
-          data.companyName = '';
-          data.partyName = '';
-          data.from = '';
-          data.to = '';
-          data.companyRate = 0;
+          data.companyName = formData.get('companyName');
+          data.partyName = formData.get('partyName');
+          data.from = formData.get('from');
+          data.to = formData.get('to');
+          data.bookingType = formData.get('bookingType');
+          data.typeOfBooking = formData.get('typeOfBooking');
+          data.placedBy = formData.get('placedBy');
+          data.truckRate = parseFloat(formData.get('truckRate')) || 0;
+          data.companyRate = parseFloat(formData.get('companyRate')) || 0;
           data.commissionApplicable = commissionApplicable;
           data.commission = commissionAmount;
           data.commissionTakenBy = formData.get('commissionTakenBy') || '';
@@ -1113,14 +901,15 @@
           date: formData.get('date'),
           truckNumber: formData.get('truckNumber'),
           truckSize: formData.get('truckSize'),
-          companies: companies,
-          
-          // Keep old fields empty for backward compatibility
-          companyName: '',
-          partyName: '',
-          from: '',
-          to: '',
-          companyRate: 0,
+          companyName: formData.get('companyName'),
+          partyName: formData.get('partyName'),
+          from: formData.get('from'),
+          to: formData.get('to'),
+          bookingType: formData.get('bookingType'),
+          typeOfBooking: formData.get('typeOfBooking'),
+          placedBy: formData.get('placedBy'),
+          truckRate: parseFloat(formData.get('truckRate')) || 0,
+          companyRate: parseFloat(formData.get('companyRate')) || 0,
           commissionApplicable: commissionApplicable,
           commission: commissionAmount,
           commissionTakenBy: formData.get('commissionTakenBy') || '',
@@ -1143,13 +932,6 @@
       
       if (result.isOk) {
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         
         // Reset editing state
         window.editingDailyRegisterId = null;
@@ -1269,13 +1051,6 @@
             if (createAnother) {
               // Keep the same daily entry selected and reset only the LR-specific fields
               e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
               const selectElem = document.getElementById('selectDailyEntryNonBooking');
               if (selectElem) {
                 selectElem.value = dailyEntryId;
@@ -1285,13 +1060,6 @@
             } else {
               // Reset everything including the daily entry selection
               e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
               const selectElem = document.getElementById('selectDailyEntryNonBooking');
               if (selectElem) selectElem.value = '';
             }
@@ -1315,13 +1083,7 @@
         if (!dailyEntryId) {
           showInlineMessage('Please select a daily register entry first', 'error');
           return;
-        }    
-    // ✅ NEW: Check if at least one LR is selected
-    const selectedCheckboxes = document.querySelectorAll('.lr-checkbox:checked');
-    if (selectedCheckboxes.length === 0) {
-      showInlineMessage('Please select at least one LR for this challan', 'error');
-      return;
-    }
+        }
       }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -1336,7 +1098,6 @@
         type: 'booking_lr',
         lrNumber: formData.get('lrNumber'),
         lrType: formData.get('lrType') || 'To Be Billed',
-        companyId: companyId,  // ✅ NEW: Store company ID
         lrDate: formData.get('lrDate'),
         truckNumber: formData.get('truckNumber'),
         consignorName: formData.get('consignorName'),
@@ -1423,13 +1184,6 @@
             if (createAnother) {
               // Keep the same daily entry selected and reset only the LR-specific fields
               e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
               const selectElem = document.getElementById('selectDailyEntry');
               if (selectElem) {
                 selectElem.value = dailyEntryId;
@@ -1439,13 +1193,6 @@
             } else {
               // Reset everything including the daily entry selection
               e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
               const selectElem = document.getElementById('selectDailyEntry');
               if (selectElem) selectElem.value = '';
             }
@@ -1484,13 +1231,6 @@
         const result = await window.dataSdk.update(lr);
         if (result.isOk) {
           e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
           populateLRSelect();
         }
       }
@@ -1527,71 +1267,10 @@
         lr.status = 'Deduction Recorded';
         await window.dataSdk.update(lr);
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         populateLRForDeductionSelect();
       }
     }
 
-    
-    // ✅ NEW: Function to update selected companies summary
-    function updateSelectedCompaniesSummary() {
-      const checkboxes = document.querySelectorAll('.lr-checkbox:checked');
-      const summaryContent = document.getElementById('companiesSummaryContent');
-      const summarySection = document.getElementById('selectedCompaniesSummary');
-      
-      if (!summaryContent || !summarySection) return;
-      
-      if (checkboxes.length === 0) {
-        summarySection.style.display = 'none';
-        return;
-      }
-      
-      // Group by company
-      const companiesMap = new Map();
-      
-      checkboxes.forEach(checkbox => {
-        const companyId = checkbox.dataset.companyId;
-        const companyName = checkbox.dataset.companyName;
-        const companyRate = parseFloat(checkbox.dataset.companyRate) || 0;
-        const lrNumber = checkbox.dataset.lrNumber;
-        
-        if (!companiesMap.has(companyId)) {
-          companiesMap.set(companyId, {
-            name: companyName,
-            rate: companyRate,
-            lrNumbers: []
-          });
-        }
-        
-        companiesMap.get(companyId).lrNumbers.push(lrNumber);
-      });
-      
-      // Generate summary HTML
-      let summaryHTML = '<div class="space-y-3">';
-      companiesMap.forEach((data, companyId) => {
-        summaryHTML += `
-          <div class="border-b border-blue-200 pb-2">
-            <div class="font-semibold text-gray-900">${data.name}</div>
-            <div class="text-sm text-gray-600">Rate: ₹${data.rate.toLocaleString('en-IN')}</div>
-            <div class="text-sm text-gray-600">LRs: ${data.lrNumbers.join(', ')}</div>
-          </div>
-        `;
-      });
-      summaryHTML += '</div>';
-      
-      summaryContent.innerHTML = summaryHTML;
-      summarySection.style.display = 'block';
-    }
-    
-    // Make function globally available
-    window.updateSelectedCompaniesSummary = updateSelectedCompaniesSummary;
-    
     async function handleChallanBookSubmit(e) {
       e.preventDefault();
       
@@ -1604,13 +1283,7 @@
         if (!dailyEntryId) {
           showInlineMessage('Please select a daily register entry first', 'error');
           return;
-        }    
-    // ✅ NEW: Check if at least one LR is selected
-    const selectedCheckboxes = document.querySelectorAll('.lr-checkbox:checked');
-    if (selectedCheckboxes.length === 0) {
-      showInlineMessage('Please select at least one LR for this challan', 'error');
-      return;
-    }
+        }
       }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -1678,56 +1351,6 @@
           data.linkedLRCount = 0;
         }
         
-        
-        // ✅ NEW: Get selected LRs
-        const selectedCheckboxes = document.querySelectorAll('.lr-checkbox:checked');
-        const selectedLRs = [];
-        const lrNumbers = [];
-        const companiesInChallan = new Map();
-        
-        selectedCheckboxes.forEach(checkbox => {
-          const lrId = checkbox.dataset.lrId;
-          const lrNumber = checkbox.dataset.lrNumber;
-          const companyId = checkbox.dataset.companyId;
-          const companyName = checkbox.dataset.companyName;
-          const companyRate = parseFloat(checkbox.dataset.companyRate) || 0;
-          
-          selectedLRs.push({
-            lrId: lrId,
-            lrNumber: lrNumber,
-            companyId: companyId,
-            companyName: companyName,
-            companyRate: companyRate
-          });
-          
-          lrNumbers.push(lrNumber);
-          
-          // Track companies
-          if (!companiesInChallan.has(companyId)) {
-            companiesInChallan.set(companyId, {
-              name: companyName,
-              rate: companyRate,
-              lrCount: 0
-            });
-          }
-          companiesInChallan.get(companyId).lrCount++;
-        });
-        
-        // Store selected LRs and company info
-        data.selectedLRs = selectedLRs;
-        data.lrNumbers = lrNumbers.join(', ');
-        data.linkedLRCount = selectedLRs.length;
-        
-        // Store companies summary
-        data.companiesSummary = Array.from(companiesInChallan.entries()).map(([id, info]) => ({
-          companyId: id,
-          companyName: info.name,
-          companyRate: info.rate,
-          lrCount: info.lrCount
-        }));
-        
-        console.log(`✅ Creating Challan with ${selectedLRs.length} LR(s) from ${companiesInChallan.size} company(ies)`);
-        
         data.createdAt = new Date().toISOString();
         result = await window.dataSdk.create(data);
       }
@@ -1765,13 +1388,6 @@
           
           showInlineMessage('Challan created successfully!', 'success');
           e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
           document.getElementById('selectDailyForChallan').value = '';
         }
       } else {
@@ -1808,77 +1424,17 @@
           (r.dailyEntryId === entryId || r.dailyRegisterId === entryId)
         );
         
+        const lrNumbersDisplay = document.getElementById('challanLRNumbers');
+        const lrNumbersContainer = document.getElementById('challanLRNumbersDisplay');
         
-    // ✅ NEW: Display LR checkboxes for selection
-    const lrCheckboxContainer = document.getElementById('challanLRCheckboxes');
-    const lrSelectionSection = document.getElementById('challanLRSelectionSection');
-    
-    // Also check for LRs in the lrs array of daily register
-    const inlineLRs = entry.lrs || [];
-    
-    if (linkedLRs.length > 0 || inlineLRs.length > 0) {
-      let checkboxesHTML = '<div class="space-y-2">';
-      
-      // Process inline LRs (from daily register)
-      inlineLRs.forEach((lr, index) => {
-        const company = entry.companies?.find(c => c.id === lr.companyId);
-        const companyName = company?.companyName || entry.companyName || 'Unknown';
-        const companyRate = company?.companyRate || 0;
-        
-        checkboxesHTML += `
-          <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
-            <input type="checkbox" 
-                   class="lr-checkbox mt-1 w-4 h-4 text-blue-600 rounded" 
-                   data-lr-type="inline"
-                   data-lr-index="${index}"
-                   data-lr-number="${lr.lrNumber}"
-                   data-company-id="${lr.companyId || ''}"
-                   data-company-name="${companyName}"
-                   data-company-rate="${companyRate}"
-                   onchange="updateSelectedCompaniesSummary()">
-            <div class="flex-1">
-              <div class="font-semibold text-gray-900">${lr.lrNumber}</div>
-              <div class="text-sm text-gray-600">Company: ${companyName}</div>
-              <div class="text-sm text-gray-600">Rate: ₹${companyRate.toLocaleString('en-IN')}</div>
-              <div class="text-xs text-gray-500">${lr.productName || ''} | ${lr.weight || 0} kg</div>
-            </div>
-          </label>
-        `;
-      });
-      
-      // Process linked LRs (separate booking_lr/non_booking_lr documents)
-      linkedLRs.forEach(lr => {
-        const company = entry.companies?.find(c => c.id === lr.companyId);
-        const companyName = company?.companyName || entry.companyName || 'Unknown';
-        const companyRate = company?.companyRate || 0;
-        
-        checkboxesHTML += `
-          <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
-            <input type="checkbox" 
-                   class="lr-checkbox mt-1 w-4 h-4 text-blue-600 rounded" 
-                   data-lr-id="${lr.__backendId}"
-                   data-lr-number="${lr.lrNumber}"
-                   data-company-id="${lr.companyId || ''}"
-                   data-company-name="${companyName}"
-                   data-company-rate="${companyRate}"
-                   onchange="updateSelectedCompaniesSummary()">
-            <div class="flex-1">
-              <div class="font-semibold text-gray-900">${lr.lrNumber}</div>
-              <div class="text-sm text-gray-600">Company: ${companyName}</div>
-              <div class="text-sm text-gray-600">Rate: ₹${companyRate.toLocaleString('en-IN')}</div>
-              <div class="text-xs text-gray-500">${lr.productName || ''} | ${lr.weight || 0} kg</div>
-            </div>
-          </label>
-        `;
-      });
-      
-      checkboxesHTML += '</div>';
-      lrCheckboxContainer.innerHTML = checkboxesHTML;
-      lrSelectionSection.style.display = 'block';
-    } else {
-      lrCheckboxContainer.innerHTML = '<p class="text-sm text-gray-500">No LRs linked to this Daily Register entry</p>';
-      lrSelectionSection.style.display = 'block';
-    }
+        if (linkedLRs.length > 0) {
+          const lrNumbers = linkedLRs.map(lr => lr.lrNumber).filter(Boolean).join(', ');
+          lrNumbersDisplay.innerHTML = `${lrNumbers} <span style="color: #059669; font-size: 0.875rem;">(${linkedLRs.length} LR${linkedLRs.length > 1 ? 's' : ''})</span>`;
+          lrNumbersContainer.style.display = 'block';
+        } else {
+          lrNumbersDisplay.innerHTML = '<span style="color: #9ca3af;">No LRs linked to this Daily Register entry</span>';
+          lrNumbersContainer.style.display = 'block';
+        }
         
         // Auto-fill Rate per Tonne from Daily Register truck rate
         if (entry.truckRate) {
@@ -1961,16 +1517,9 @@
         alert(`✅ Bill created successfully!\n${successCount} LR(s) added to bill ${billNumber}`);
         e.target.reset();
         
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
-        
         // Reset the LR items container to initial state
-        const lrContainer = document.getElementById('lrItemsContainer');
-        lrContainer.innerHTML = `
+        const container = document.getElementById('lrItemsContainer');
+        container.innerHTML = `
           <div class="lr-item flex gap-2 items-end p-3 bg-white rounded-lg border border-gray-200">
             <div class="flex-1">
               <label class="block text-xs font-medium text-gray-600 mb-1">Select LR</label>
@@ -2103,13 +1652,6 @@
       
       if (result.isOk) {
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         const selectedDetails = document.getElementById('selectedPaymentEntryDetails');
         if (selectedDetails) {
           selectedDetails.innerHTML = '<p class="text-gray-600">No entry selected. Select an entry above to see details and outstanding amounts.</p>';
@@ -2162,13 +1704,6 @@
         const result = await window.dataSdk.update(lr);
         if (result.isOk) {
           e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
           document.getElementById('courierDetailsField').classList.add('hidden');
           document.getElementById('selfDetailsField').classList.add('hidden');
           populateBilledLRSelect();
@@ -2205,13 +1740,6 @@
       
       if (result.isOk) {
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         showInlineMessage('Truck added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add truck. Please try again.', 'error');
@@ -2245,13 +1773,6 @@
       
       if (result.isOk) {
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         showInlineMessage('Company added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add company. Please try again.', 'error');
@@ -2285,13 +1806,6 @@
       
       if (result.isOk) {
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         showInlineMessage('Party added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add party. Please try again.', 'error');
@@ -2324,13 +1838,6 @@
       
       if (result.isOk) {
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         showInlineMessage('Staff added successfully!', 'success');
       } else {
         showInlineMessage('Failed to add staff. Please try again.', 'error');
@@ -3421,13 +2928,6 @@
             document.getElementById('ledgerPaymentModal').classList.add('hidden');
             document.getElementById('ledgerPaymentModal').classList.remove('flex');
             e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
             showInlineMessage('Staff payment recorded successfully!', 'success');
             viewLedger();
           }
@@ -3462,13 +2962,6 @@
         document.getElementById('ledgerPaymentModal').classList.add('hidden');
         document.getElementById('ledgerPaymentModal').classList.remove('flex');
         e.target.reset();
-        
-        // Clear companies container and add one fresh row
-        const container = document.getElementById('companiesContainer');
-        if (container) {
-          container.innerHTML = '';
-          addCompanyRow();
-        }
         showInlineMessage(`Payment ${paymentAction === 'receive' ? 'received' : 'made'} successfully!`, 'success');
         viewLedger(); // Refresh the ledger to show the new transaction
       } else {
@@ -4321,7 +3814,6 @@
     }
 
     function updateDailyRegisterList() {
-      // ✅ Enhanced to display multiple companies
       const tbody = document.getElementById('dailyRegisterList');
       const entries = allRecords.filter(r => r.type === 'daily_register');
       
@@ -5610,7 +5102,7 @@
     }
 
     
-    // currentDailyEntryForLR already declared at top
+    let currentDailyEntryForLR = null;
     
     function openLRManagement(entryId) {
       const entry = allRecords.find(r => r.__backendId === entryId && r.type === 'daily_register');
@@ -8433,3 +7925,673 @@ function numberToWords(num) {
         }
       });
     }
+// ============================================================================
+// ENHANCED DAILY REGISTER - JavaScript Additions
+// Add this code to the END of your dashboard-main.js file
+// ============================================================================
+
+// Global variables for enhanced daily register
+let companyIndexCounter = 1;
+let deliveryCityCounter = 1;
+
+// ============================================================================
+// INITIALIZATION FUNCTIONS
+// ============================================================================
+
+// Initialize enhanced daily register - call this in your main initialization
+function initializeEnhancedDailyRegister() {
+  console.log('Initializing Enhanced Daily Register...');
+  
+  // Delivery Type Selection
+  const deliveryTypeSelect = document.getElementById('deliveryTypeSelect');
+  if (deliveryTypeSelect) {
+    deliveryTypeSelect.addEventListener('change', handleDeliveryTypeChange);
+  }
+  
+  // Commission checkbox - update the existing listener
+  const commissionCheckbox = document.getElementById('commissionApplicable');
+  if (commissionCheckbox) {
+    // Remove old listener and add new one
+    const newCheckbox = commissionCheckbox.cloneNode(true);
+    commissionCheckbox.parentNode.replaceChild(newCheckbox, commissionCheckbox);
+    newCheckbox.addEventListener('change', handleCommissionToggleEnhanced);
+  }
+  
+  // Populate company selects for the first entry
+  populateCompanySelects();
+  
+  console.log('Enhanced Daily Register initialized');
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+// Handle delivery type change
+function handleDeliveryTypeChange(e) {
+  const deliveryType = e.target.value;
+  const additionalSection = document.getElementById('additionalDeliveriesSection');
+  
+  if (deliveryType === 'multiple') {
+    additionalSection.classList.remove('hidden');
+  } else {
+    additionalSection.classList.add('hidden');
+    // Clear all delivery cities when switching to single
+    document.getElementById('deliveryCitiesList').innerHTML = '';
+    deliveryCityCounter = 1;
+  }
+}
+
+// Handle commission toggle - enhanced version
+function handleCommissionToggleEnhanced(e) {
+  const commissionFields = document.getElementById('commissionFields');
+  
+  if (e.target.checked) {
+    commissionFields.classList.remove('hidden');
+  } else {
+    commissionFields.classList.add('hidden');
+    // Reset commission fields
+    const commissionInput = commissionFields.querySelector('input[name="commission"]');
+    if (commissionInput) commissionInput.value = '0';
+  }
+}
+
+// ============================================================================
+// DELIVERY CITY FUNCTIONS
+// ============================================================================
+
+// Add a new delivery city
+function addDeliveryCity() {
+  const deliveryCitiesList = document.getElementById('deliveryCitiesList');
+  const cityIndex = deliveryCityCounter++;
+  
+  const cityDiv = document.createElement('div');
+  cityDiv.className = 'delivery-city-item';
+  cityDiv.setAttribute('data-city-index', cityIndex);
+  cityDiv.innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="flex-1">
+        <label class="block text-xs font-medium text-gray-700 mb-1">Delivery City #${cityIndex}</label>
+        <input 
+          type="text" 
+          name="deliveryCities[${cityIndex}]" 
+          required 
+          class="input-field w-full" 
+          placeholder="Enter city name"
+        >
+      </div>
+      <button 
+        type="button" 
+        onclick="removeDeliveryCity(${cityIndex})" 
+        class="mt-5 bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm"
+      >
+        ✖️ Remove
+      </button>
+    </div>
+  `;
+  
+  deliveryCitiesList.appendChild(cityDiv);
+}
+
+// Remove a delivery city
+function removeDeliveryCity(cityIndex) {
+  const cityDiv = document.querySelector(`[data-city-index="${cityIndex}"]`);
+  if (cityDiv) {
+    cityDiv.remove();
+  }
+}
+
+// ============================================================================
+// COMPANY ENTRY FUNCTIONS
+// ============================================================================
+
+// Add a new company entry
+function addCompanyEntry() {
+  const companiesContainer = document.getElementById('companiesContainer');
+  const companyIndex = companyIndexCounter++;
+  
+  const companyDiv = document.createElement('div');
+  companyDiv.className = 'company-item';
+  companyDiv.setAttribute('data-company-index', companyIndex);
+  companyDiv.innerHTML = `
+    <button 
+      type="button" 
+      onclick="removeCompanyEntry(${companyIndex})" 
+      class="remove-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+    >
+      ✖️ Remove
+    </button>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+        <select name="companies[${companyIndex}][name]" required class="input-field w-full company-select" data-index="${companyIndex}">
+          <option value="">Select Company</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+        <input 
+          type="number" 
+          name="companies[${companyIndex}][rate]" 
+          required 
+          class="input-field w-full" 
+          placeholder="0" 
+          step="0.01"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Destination City *</label>
+        <input 
+          type="text" 
+          name="companies[${companyIndex}][location]" 
+          required 
+          class="input-field w-full" 
+          placeholder="Delivery City"
+        >
+      </div>
+    </div>
+  `;
+  
+  companiesContainer.appendChild(companyDiv);
+  
+  // Populate the new company select
+  populateCompanySelect(companyIndex);
+}
+
+// Remove a company entry
+function removeCompanyEntry(companyIndex) {
+  const companyDiv = document.querySelector(`[data-company-index="${companyIndex}"]`);
+  if (companyDiv) {
+    companyDiv.remove();
+  }
+}
+
+// Populate all company selects
+function populateCompanySelects() {
+  const companySelects = document.querySelectorAll('.company-select');
+  companySelects.forEach(select => {
+    const index = select.getAttribute('data-index');
+    populateCompanySelect(index);
+  });
+}
+
+// Populate a specific company select
+function populateCompanySelect(index) {
+  const select = document.querySelector(`.company-select[data-index="${index}"]`);
+  if (!select) return;
+  
+  // Get companies from allRecords (assuming it's available globally)
+  const companies = allRecords.filter(r => r.type === 'company_master');
+  
+  // Clear existing options except the first one
+  select.innerHTML = '<option value="">Select Company</option>';
+  
+  // Add company options
+  companies.forEach(company => {
+    const option = document.createElement('option');
+    option.value = company.companyName;
+    option.textContent = company.companyName;
+    select.appendChild(option);
+  });
+}
+
+// ============================================================================
+// FORM SUBMISSION - ENHANCED VERSION
+// ============================================================================
+
+// Store the original function if it exists
+const originalHandleDailyRegisterSubmit = window.handleDailyRegisterSubmit;
+
+// Enhanced daily register form submission
+async function handleDailyRegisterSubmit(e) {
+  e.preventDefault();
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const isEditing = window.editingDailyRegisterId;
+  
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="loading-spinner inline-block mr-2"></span>${isEditing ? 'Updating...' : 'Saving...'}`;
+  }
+  
+  const formData = new FormData(e.target);
+  
+  // Collect companies data
+  const companies = [];
+  const companyDivs = document.querySelectorAll('#companiesContainer .company-item');
+  
+  companyDivs.forEach((div, idx) => {
+    const companyIndex = div.getAttribute('data-company-index') || idx;
+    const name = formData.get(`companies[${companyIndex}][name]`);
+    const rate = formData.get(`companies[${companyIndex}][rate]`);
+    const location = formData.get(`companies[${companyIndex}][location]`);
+    
+    if (name && rate && location) {
+      companies.push({
+        name: name,
+        rate: parseFloat(rate) || 0,
+        location: location
+      });
+    }
+  });
+  
+  // Validate at least one company
+  if (companies.length === 0) {
+    alert('Please add at least one company with rate and destination.');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+    }
+    return;
+  }
+  
+  // Collect delivery cities (if multiple delivery)
+  const deliveryType = formData.get('deliveryType');
+  const deliveryCities = [];
+  
+  if (deliveryType === 'multiple') {
+    const cityInputs = document.querySelectorAll('#deliveryCitiesList input[name^="deliveryCities"]');
+    cityInputs.forEach(input => {
+      if (input.value.trim()) {
+        deliveryCities.push(input.value.trim());
+      }
+    });
+  }
+  
+  // Commission data
+  const commissionApplicable = formData.get('commissionApplicable') === 'on';
+  const commissionAmount = commissionApplicable ? (parseFloat(formData.get('commission')) || 0) : 0;
+  
+  // Calculate total company rate (sum of all company rates)
+  const totalCompanyRate = companies.reduce((sum, company) => sum + company.rate, 0);
+  
+  let result;
+  
+  if (isEditing) {
+    // UPDATE existing entry
+    const existingEntry = allRecords.find(r => r.__backendId === isEditing);
+    if (existingEntry) {
+      const data = { ...existingEntry };
+      
+      // Update basic fields
+      data.date = formData.get('date');
+      data.truckNumber = formData.get('truckNumber');
+      data.truckSize = formData.get('truckSize');
+      data.partyName = formData.get('partyName') || '';
+      data.from = formData.get('from');
+      data.bookingType = formData.get('bookingType');
+      data.typeOfBooking = formData.get('typeOfBooking');
+      data.placedBy = formData.get('placedBy');
+      data.truckRate = parseFloat(formData.get('truckRate')) || 0;
+      
+      // Update new fields
+      data.deliveryType = deliveryType;
+      data.deliveryCities = deliveryCities;
+      data.companies = companies;
+      data.companyRate = totalCompanyRate;
+      
+      // Use first company's name and location for backward compatibility
+      if (companies.length > 0) {
+        data.companyName = companies[0].name;
+        data.to = companies[0].location;
+      }
+      
+      // Update commission
+      data.commissionApplicable = commissionApplicable;
+      data.commission = commissionAmount;
+      data.commissionTakenBy = formData.get('commissionTakenBy') || '';
+      data.commissionStatus = formData.get('commissionStatus') || 'Paid';
+      data.notes = formData.get('notes') || '';
+      data.updatedAt = new Date().toISOString();
+      
+      result = await window.dataSdk.update(data);
+    } else {
+      result = { isOk: false };
+    }
+  } else {
+    // CREATE new entry
+    const data = {
+      type: 'daily_register',
+      date: formData.get('date'),
+      truckNumber: formData.get('truckNumber'),
+      truckSize: formData.get('truckSize'),
+      partyName: formData.get('partyName') || '',
+      from: formData.get('from'),
+      bookingType: formData.get('bookingType'),
+      typeOfBooking: formData.get('typeOfBooking'),
+      placedBy: formData.get('placedBy'),
+      truckRate: parseFloat(formData.get('truckRate')) || 0,
+      deliveryType: deliveryType,
+      deliveryCities: deliveryCities,
+      companies: companies,
+      companyRate: totalCompanyRate,
+      commissionApplicable: commissionApplicable,
+      commission: commissionAmount,
+      commissionTakenBy: formData.get('commissionTakenBy') || '',
+      commissionStatus: formData.get('commissionStatus') || 'Paid',
+      notes: formData.get('notes') || '',
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      __backendId: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    };
+    
+    // For backward compatibility
+    if (companies.length > 0) {
+      data.companyName = companies[0].name;
+      data.to = companies[0].location;
+    }
+    
+    result = await window.dataSdk.create(data);
+  }
+  
+  // Handle result
+  if (result.isOk) {
+    showInlineMessage(
+      isEditing ? '✅ Entry updated successfully!' : '✅ Entry added successfully!',
+      'success'
+    );
+    
+    // Reset form
+    e.target.reset();
+    resetFormToAddMode();
+    
+    // Reset company counter and clear additional companies
+    companyIndexCounter = 1;
+    const companiesContainer = document.getElementById('companiesContainer');
+    const companyItems = companiesContainer.querySelectorAll('.company-item:not(.first-company)');
+    companyItems.forEach(item => item.remove());
+    
+    // Repopulate first company select
+    populateCompanySelects();
+    
+    // Reset delivery cities
+    deliveryCityCounter = 1;
+    document.getElementById('deliveryCitiesList').innerHTML = '';
+    document.getElementById('additionalDeliveriesSection').classList.add('hidden');
+    
+    // Hide commission fields
+    document.getElementById('commissionFields').classList.add('hidden');
+  } else {
+    showInlineMessage('❌ Failed to save entry. Please try again.', 'error');
+  }
+  
+  // Re-enable submit button
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+  }
+}
+
+// ============================================================================
+// FORM RESET AND EDIT FUNCTIONS
+// ============================================================================
+
+// Reset form to add mode after editing
+function resetFormToAddMode() {
+  window.editingDailyRegisterId = null;
+  
+  const form = document.getElementById('dailyRegisterForm');
+  if (!form) return;
+  
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+    submitBtn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+    submitBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+  }
+  
+  const resetBtn = form.querySelector('button[type="reset"]');
+  if (resetBtn) {
+    resetBtn.textContent = 'Clear';
+    resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'text-white');
+    resetBtn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+  }
+}
+
+// Edit daily register with enhanced fields
+function editDailyRegister(id) {
+  const entry = allRecords.find(r => r.__backendId === id);
+  if (!entry) {
+    alert('Entry not found!');
+    return;
+  }
+  
+  // Show the form section
+  const formSection = document.getElementById('dailyRegisterFormSection');
+  if (formSection && formSection.classList.contains('hidden')) {
+    formSection.classList.remove('hidden');
+    const toggleBtn = document.getElementById('toggleDailyFormBtn');
+    if (toggleBtn) {
+      toggleBtn.textContent = '✖️ Cancel';
+      toggleBtn.classList.remove('btn-primary');
+      toggleBtn.classList.add('btn-secondary');
+    }
+  }
+  
+  window.editingDailyRegisterId = id;
+  
+  const form = document.getElementById('dailyRegisterForm');
+  if (!form) return;
+  
+  // Populate basic fields
+  form.querySelector('[name="date"]').value = entry.date || '';
+  form.querySelector('[name="truckNumber"]').value = entry.truckNumber || '';
+  form.querySelector('[name="truckSize"]').value = entry.truckSize || '';
+  form.querySelector('[name="partyName"]').value = entry.partyName || '';
+  form.querySelector('[name="from"]').value = entry.from || '';
+  form.querySelector('[name="bookingType"]').value = entry.bookingType || '';
+  form.querySelector('[name="typeOfBooking"]').value = entry.typeOfBooking || '';
+  form.querySelector('[name="placedBy"]').value = entry.placedBy || '';
+  form.querySelector('[name="truckRate"]').value = entry.truckRate || '';
+  
+  // Populate delivery type
+  const deliveryTypeSelect = document.getElementById('deliveryTypeSelect');
+  if (deliveryTypeSelect) {
+    deliveryTypeSelect.value = entry.deliveryType || 'single';
+    deliveryTypeSelect.dispatchEvent(new Event('change'));
+  }
+  
+  // Populate delivery cities
+  if (entry.deliveryType === 'multiple' && entry.deliveryCities && entry.deliveryCities.length > 0) {
+    const deliveryCitiesList = document.getElementById('deliveryCitiesList');
+    deliveryCitiesList.innerHTML = '';
+    
+    entry.deliveryCities.forEach((city, idx) => {
+      const cityIndex = idx + 1;
+      const cityDiv = document.createElement('div');
+      cityDiv.className = 'delivery-city-item';
+      cityDiv.setAttribute('data-city-index', cityIndex);
+      cityDiv.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Delivery City #${cityIndex}</label>
+            <input 
+              type="text" 
+              name="deliveryCities[${cityIndex}]" 
+              required 
+              class="input-field w-full" 
+              placeholder="Enter city name"
+              value="${city}"
+            >
+          </div>
+          <button 
+            type="button" 
+            onclick="removeDeliveryCity(${cityIndex})" 
+            class="mt-5 bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm"
+          >
+            ✖️ Remove
+          </button>
+        </div>
+      `;
+      deliveryCitiesList.appendChild(cityDiv);
+    });
+    
+    deliveryCityCounter = entry.deliveryCities.length + 1;
+  }
+  
+  // Populate companies
+  const companiesContainer = document.getElementById('companiesContainer');
+  companiesContainer.innerHTML = '';
+  
+  const companiesToPopulate = entry.companies && entry.companies.length > 0 
+    ? entry.companies 
+    : [{name: entry.companyName || '', rate: entry.companyRate || 0, location: entry.to || ''}];
+  
+  companiesToPopulate.forEach((company, idx) => {
+    const isFirst = idx === 0;
+    const companyDiv = document.createElement('div');
+    companyDiv.className = `company-item ${isFirst ? 'first-company' : ''}`;
+    companyDiv.setAttribute('data-company-index', idx);
+    companyDiv.innerHTML = `
+      ${!isFirst ? `
+      <button 
+        type="button" 
+        onclick="removeCompanyEntry(${idx})" 
+        class="remove-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+      >
+        ✖️ Remove
+      </button>` : ''}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+          <select name="companies[${idx}][name]" required class="input-field w-full company-select" data-index="${idx}">
+            <option value="">Select Company</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+          <input 
+            type="number" 
+            name="companies[${idx}][rate]" 
+            required 
+            class="input-field w-full" 
+            placeholder="0" 
+            step="0.01"
+            value="${company.rate || 0}"
+          >
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Destination City *</label>
+          <input 
+            type="text" 
+            name="companies[${idx}][location]" 
+            required 
+            class="input-field w-full" 
+            placeholder="Delivery City"
+            value="${company.location || ''}"
+          >
+        </div>
+      </div>
+    `;
+    companiesContainer.appendChild(companyDiv);
+    
+    // Populate company select and set value
+    populateCompanySelect(idx);
+    setTimeout(() => {
+      const select = document.querySelector(`.company-select[data-index="${idx}"]`);
+      if (select) {
+        select.value = company.name || '';
+      }
+    }, 100);
+  });
+  
+  companyIndexCounter = companiesToPopulate.length;
+  
+  // Populate commission
+  const commissionCheckbox = document.getElementById('commissionApplicable');
+  if (entry.commission && entry.commission > 0) {
+    commissionCheckbox.checked = true;
+    commissionCheckbox.dispatchEvent(new Event('change'));
+    
+    form.querySelector('[name="commission"]').value = entry.commission || '';
+    form.querySelector('[name="commissionTakenBy"]').value = entry.commissionTakenBy || '';
+    form.querySelector('[name="commissionStatus"]').value = entry.commissionStatus || 'Paid';
+  } else {
+    commissionCheckbox.checked = false;
+    commissionCheckbox.dispatchEvent(new Event('change'));
+  }
+  
+  form.querySelector('[name="notes"]').value = entry.notes || '';
+  
+  // Change submit button
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>✏️ Update Entry</span></span>';
+    submitBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    submitBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+  }
+  
+  // Change clear button to cancel
+  const resetBtn = form.querySelector('button[type="reset"]');
+  if (resetBtn) {
+    resetBtn.textContent = '❌ Cancel Edit';
+    resetBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'text-white');
+    resetBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+  }
+  
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showInlineMessage('📝 Editing mode: Update the fields and click "Update Entry" button.', 'info');
+}
+
+// Cancel edit
+function cancelEditDailyRegister() {
+  resetFormToAddMode();
+  
+  const form = document.getElementById('dailyRegisterForm');
+  if (form) {
+    form.reset();
+  }
+  
+  // Reset companies to just one
+  companyIndexCounter = 1;
+  const companiesContainer = document.getElementById('companiesContainer');
+  companiesContainer.innerHTML = `
+    <div class="company-item first-company" data-company-index="0">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+          <select name="companies[0][name]" required class="input-field w-full company-select" data-index="0">
+            <option value="">Select Company</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+          <input type="number" name="companies[0][rate]" required class="input-field w-full" placeholder="0" step="0.01">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Destination City *</label>
+          <input type="text" name="companies[0][location]" required class="input-field w-full" placeholder="Delivery City">
+        </div>
+      </div>
+    </div>
+  `;
+  populateCompanySelects();
+  
+  // Reset delivery cities
+  deliveryCityCounter = 1;
+  document.getElementById('deliveryCitiesList').innerHTML = '';
+  document.getElementById('additionalDeliveriesSection').classList.add('hidden');
+  
+  // Hide commission fields
+  document.getElementById('commissionFields').classList.add('hidden');
+  
+  showInlineMessage('Edit cancelled. Form reset to add new entry mode.', 'info');
+}
+
+// ============================================================================
+// INITIALIZE ON PAGE LOAD
+// ============================================================================
+
+// Add to your existing DOMContentLoaded or initialization function
+// If you already have a DOMContentLoaded listener, add initializeEnhancedDailyRegister() to it
+// Otherwise, use this:
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a bit for other initializations to complete
+  setTimeout(function() {
+    initializeEnhancedDailyRegister();
+  }, 500);
+});
+
+console.log('Enhanced Daily Register module loaded');
