@@ -1,0 +1,366 @@
+/* ==================== CORPORATE PROFESSIONAL THEME ==================== */
+
+/* Base Styles */
+body {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  background: #f8f9fa;
+  margin: 0;
+  padding: 0;
+  color: #1a1a1a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Tab Navigation - Corporate Style */
+.tab-button {
+  transition: all 0.2s ease;
+  position: relative;
+  background: transparent;
+  border: none;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.tab-button.active {
+  background: #ffffff;
+  color: #1e3a8a;
+  font-weight: 600;
+  border-bottom: 3px solid #1e3a8a;
+}
+
+.tab-button.active::after {
+  display: none; /* Removed gradient underline for clean corporate look */
+}
+
+.tab-button:hover:not(.active) {
+  background: #f3f4f6;
+  color: #1e3a8a;
+}
+
+/* Cards - Corporate Clean Style */
+.card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  transition: all 0.2s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+}
+
+/* Input Fields - Professional Style */
+.input-field {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+  background: #ffffff;
+}
+
+.input-field:hover {
+  border-color: #9ca3af;
+}
+
+/* Primary Button - Corporate Blue */
+.btn-primary {
+  background: #1e3a8a;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.btn-primary:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Secondary Button - Neutral Gray */
+.btn-secondary {
+  background: #ffffff;
+  color: #374151;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.btn-secondary:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* Status Badges - Professional */
+.status-badge {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #78350f;
+  border: 1px solid #fbbf24;
+}
+
+.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.status-billed {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #1e3a8a;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+/* Filter Chips */
+.filter-chip {
+  background: #e0e7ff;
+  color: #1e3a8a;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  border: 1px solid #c7d2fe;
+}
+
+/* Profit/Loss Colors */
+.profit-positive {
+  color: #047857;
+  font-weight: 700;
+}
+
+.profit-negative {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* Table Container - Corporate Clean */
+.table-container {
+  overflow-x: auto;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: #ffffff;
+}
+
+/* Alert Cards - Professional */
+.alert-card {
+  border-left: 4px solid;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.alert-card:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transform: translateX(2px);
+}
+
+.alert-critical {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+.alert-warning {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.alert-info {
+  border-left-color: #1e3a8a;
+  background: #eff6ff;
+}
+
+.alert-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1a1a1a;
+}
+
+.alert-message {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.alert-icon {
+  width: 20px;
+  height: 20px;
+}
+
+
+/* Table Styles - Professional Corporate */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+th {
+  background: #1e3a8a;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #1e40af;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  color: #374151;
+}
+
+tr:hover {
+  background: #f9fafb;
+}
+
+tbody tr {
+  transition: all 0.15s ease;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* Summary Cards - Corporate Style */
+.summary-card {
+  background: #1e3a8a;
+  color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.summary-card-green {
+  background: #047857;
+}
+
+.summary-card-blue {
+  background: #1e40af;
+}
+
+.summary-card-orange {
+  background: #ea580c;
+}
+
+.summary-card-purple {
+  background: #7c3aed;
+}
+
+/* GST Report Table Styles */
+.gst-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: #ffffff;
+}
+
+.gst-report-table thead {
+  background: #1e3a8a;
+  color: white;
+}
+
+.gst-report-table th {
+  padding: 10px 6px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+  font-size: 10px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.gst-report-table td {
+  padding: 8px 6px;
+  border: 1px solid #e5e7eb;
+  vertical-align: middle;
+  font-size: 11px;
+}
+
+.gst-report-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.gst-report-table tbody tr:hover {
+  background: #f3f4f6;
+}

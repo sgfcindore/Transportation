@@ -1,0 +1,1840 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>South Gujrat Freight Carrier</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Authentication Check -->
+  <script>
+    // Check if user is logged in, if not redirect to login page
+    window.addEventListener('DOMContentLoaded', function() {
+      const user = localStorage.getItem('sgfc_user');
+      if (!user) {
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+  
+  <!-- Firebase Configuration -->
+  <script type="module" src="js/firebase-config.js"></script>
+  
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="css/dashboard.css">
+  
+  <style>@view-transition { navigation: auto; }</style>
+</head>
+ <body class="bg-gray-50">
+  <div id="app" class="min-h-full"><!-- Header -->
+   <header class="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 shadow-md border-b-4 border-blue-700">
+    <div class="px-6 py-5">
+     <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+       <div class="w-12 h-12 bg-white rounded-lg shadow-md flex items-center justify-center">
+        <svg class="w-7 h-7 text-blue-900" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+       </div>
+       <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight" id="companyTitle">South Gujrat Freight Carrier</h1>
+        <p class="text-xs text-blue-100 mt-1 font-medium">Professional Logistics &amp; Transportation Management <span id="cloudStatus" class="ml-2 text-xs"></span></p>
+       </div>
+      </div>
+      <div class="flex items-center gap-3">
+       <div class="bg-white/10 backdrop-blur-sm rounded-md px-4 py-2 border border-white/20">
+        <div class="text-xs text-blue-100 mb-1">
+         Live Date &amp; Time
+        </div>
+        <div class="text-sm text-white font-semibold" id="liveDateTime">
+         Loading...
+        </div>
+       </div>
+       <div class="bg-white/10 backdrop-blur-sm rounded-md px-4 py-2 border border-white/20"><span class="text-sm text-white font-semibold" id="recordCount">0 Records</span>
+       </div>
+       <div class="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-md flex items-center justify-center border border-white/20">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+       </div>
+      </div>
+     </div>
+    </div>
+   </header><!-- Action Buttons Bar -->
+   <div class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="px-6 py-2">
+     <div class="flex gap-2 justify-between items-center"><button id="mastersBtn" class="btn-secondary flex items-center gap-1 text-sm px-3 py-2">
+       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+       </svg> Masters </button>
+      <div class="flex gap-2"><button id="saveDataBtn" class="btn-primary flex items-center gap-1 text-sm px-3 py-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg> Save </button> <button id="backupDataBtn" class="btn-secondary flex items-center gap-1 text-sm px-3 py-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg> Backup </button> <button id="restoreDataBtn" class="btn-secondary flex items-center gap-1 text-sm px-3 py-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg> Restore </button> <button id="deleteAllBtn" class="btn-secondary flex items-center gap-1 text-sm px-3 py-2 bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg> Delete All Data </button> <button id="logoutBtn" class="btn-secondary flex items-center gap-1 text-sm px-3 py-2 bg-red-50 text-red-600 border-red-200 hover:bg-red-100">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg> Logout </button>
+      </div>
+     </div>
+    </div>
+   </div><!-- Navigation Tabs -->
+   <div class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="px-6">
+     <div class="flex gap-2 overflow-x-auto"><button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap active rounded-t-lg" data-tab="dashboard"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg> Dashboard </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="daily-register"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg> Daily Register </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="lr-creation"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg> Booking LR </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="non-booking-lr"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg> Non-Booking LR </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="challan-book"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg> Challan Book </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="lr-received"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg> LR Received </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="billing"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg> Billing </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="payment-tracking"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg> Payment Tracking </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="profit-loss"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg> Profit &amp; Loss </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="ledger"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg> Ledger </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="reports"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg> Reports </span> </button> <button class="tab-button px-5 py-4 text-sm font-semibold text-gray-600 whitespace-nowrap rounded-t-lg" data-tab="gst"> <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+        </svg> GST </span> </button>
+     </div>
+    </div>
+   </div><!-- Main Content -->
+   <main class="px-6 py-6"><!-- Dashboard Tab -->
+    <div id="dashboard-tab" class="tab-content">
+     <!-- Alert System -->
+     <div id="alertSection" class="mb-6">
+      <!-- Alerts will be dynamically populated here -->
+     </div>
+     
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="card p-6 bg-gradient-to-br from-blue-700 to-blue-800 text-white">
+       <div class="flex items-center justify-between mb-3">
+        <div class="text-xs opacity-90 font-semibold uppercase tracking-wide">
+         Total Bookings
+        </div>
+        <svg class="w-7 h-7 opacity-70" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+       </div>
+       <div class="text-4xl font-bold" id="totalBookings">
+        0
+       </div>
+       <div class="text-xs opacity-75 mt-2">
+        📦 Active shipments
+       </div>
+      </div>
+      <div class="card p-6 bg-gradient-to-br from-orange-500 to-red-500 text-white transform hover:scale-105 transition-transform">
+       <div class="flex items-center justify-between mb-3">
+        <div class="text-sm opacity-90 font-semibold">
+         Pending Payments
+        </div>
+        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+       </div>
+       <div class="text-4xl font-bold" id="pendingPayments">
+        ₹0
+       </div>
+       <div class="text-xs opacity-75 mt-2">
+        ⏳ Awaiting collection
+       </div>
+      </div>
+     </div>
+     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-6">
+       <h3 class="text-lg font-semibold mb-4">Recent Bookings</h3>
+       <div id="recentBookings" class="space-y-3">
+        <p class="text-gray-500 text-sm">No bookings yet</p>
+       </div>
+      </div>
+      <div class="card p-6">
+       <h3 class="text-lg font-semibold mb-4">Pending LRs</h3>
+       <div id="pendingLRs" class="space-y-3">
+        <p class="text-gray-500 text-sm">No pending LRs</p>
+       </div>
+      </div>
+     </div>
+    </div><!-- Daily Register Tab -->
+    <div id="daily-register-tab" class="tab-content hidden">
+     
+     <!-- List View Section -->
+     <div class="card p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Daily Register Entries</h3>
+       <div class="flex gap-2">
+        <button onclick="toggleAddDailyRegisterForm()" class="btn-primary" id="toggleDailyFormBtn">➕ Add New Entry</button>
+        <button onclick="exportToCSV('daily_register')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button>
+        <button onclick="printTable('daily_register')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>S.No</th>
+          <th>Date</th>
+          <th>Truck No.</th>
+          <th>Size</th>
+          <th>Company</th>
+          <th>From → To</th>
+          <th>Payment Type</th>
+          <th>Booking Type</th>
+          <th>Placed By</th>
+          <th>Truck Rate</th>
+          <th>Company Rate</th>
+          <th>Commission</th>
+          <th>Taken By</th>
+          <th>Com. Status</th>
+          <th>LRs</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="dailyRegisterList">
+         <tr>
+          <td colspan="16" class="text-center text-gray-500">Loading...</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+     
+     <!-- Add/Edit Form Section (Initially Hidden) -->
+     <div class="card p-6 mb-6 hidden" id="dailyRegisterFormSection">
+      <h2 class="text-xl font-semibold mb-6">Add Daily Register Entry</h2>
+      
+      <!-- LR Type Legend -->
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          <div class="flex-1">
+            <h3 class="font-semibold text-yellow-900 mb-2">Important: LR Types</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex items-start gap-2">
+                <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-semibold whitespace-nowrap">TO BE BILLED</span>
+                <span class="text-gray-700">Normal workflow - LR needs to be received, billed, and payment tracked. All alerts apply.</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full font-semibold whitespace-nowrap">TO PAY</span>
+                <span class="text-gray-700">Transaction at destination - No billing, no payment tracking, no LR received/sent steps. Alerts do not apply.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+       <h3 class="font-semibold text-blue-900 mb-2">Payment Types:</h3>
+       <ul class="text-sm text-blue-800 space-y-1">
+        <li><strong>To Pay:</strong> Small or no advance at loading. Full/remaining payment provided by company/party at unloading site.</li>
+        <li><strong>To Be Billed:</strong> Large advance (70-80%) provided at loading. Balance collected after receiving LR back and billing.</li>
+       </ul>
+      </div>
+      <form id="dailyRegisterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Date *</label> <input type="date" name="date" required class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Number *</label> <select name="truckNumber" required class="input-field w-full" id="dailyTruckSelect"> <option value="">Select Truck</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Size *</label> <select name="truckSize" required class="input-field w-full"> <option value="">Select Size</option> <option value="6 Tyre">6 Tyre</option> <option value="10 Tyre">10 Tyre</option> <option value="12 Tyre">12 Tyre</option> <option value="14 Tyre">14 Tyre</option> <option value="Eicher">Eicher</option> <option value="Others">Others</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company *</label> <select name="companyName" required class="input-field w-full" id="dailyCompanySelect"> <option value="">Select Company</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Party</label> <select name="partyName" class="input-field w-full" id="dailyPartySelect"> <option value="">Select Party</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">From *</label> <input type="text" name="from" required class="input-field w-full" placeholder="Origin City">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">To *</label> <input type="text" name="to" required class="input-field w-full" placeholder="Destination City">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Type *</label> <select name="bookingType" required class="input-field w-full"> <option value="">Select Type</option> <option value="To Pay">To Pay</option> <option value="To Be Billed">To Be Billed</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Type of Booking *</label> <select name="typeOfBooking" required class="input-field w-full"> <option value="">Select Type</option> <option value="Booking">Booking</option> <option value="Non Booking">Non Booking</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Placed By *</label> <select name="placedBy" required class="input-field w-full" id="dailyPlacedBySelect"> <option value="">Select Staff/Company</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Rate *</label> <input type="number" name="truckRate" required class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label> <input type="number" name="companyRate" required class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2"> <input type="checkbox" id="commissionApplicable" name="commissionApplicable" class="mr-2"> Commission Applicable </label>
+       </div>
+       <div id="commissionAmountField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Commission Amount</label> <input type="number" name="commission" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div id="commissionTakenByField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Commission Taken By</label> <select name="commissionTakenBy" class="input-field w-full" id="commissionTakenBySelect"> <option value="">Select</option> </select>
+       </div>
+       <div id="commissionStatusField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Commission Status</label> <select name="commissionStatus" class="input-field w-full"> <option value="Paid">Paid</option> <option value="Pending">Pending</option> </select>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea name="notes" class="input-field w-full" rows="2" placeholder="Additional notes..."></textarea>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3"><button type="submit" class="btn-primary"> <span class="flex items-center gap-2"> <span>Add Entry</span> </span> </button> <button type="reset" class="btn-secondary" onclick="cancelEditDailyRegister()">Clear</button>
+       </div>
+      </form>
+     </div>
+     
+     <!-- LR Management for Selected Daily Register Entry -->
+     <div id="lrManagementSection" class="card p-6 mb-6 hidden">
+      <h2 class="text-xl font-semibold mb-4">Manage LRs for Selected Entry</h2>
+      <div id="selectedEntryInfo" class="bg-blue-50 p-4 rounded-lg mb-4">
+        <p class="text-sm text-gray-700"><strong>Truck:</strong> <span id="selectedTruck"></span></p>
+        <p class="text-sm text-gray-700"><strong>Route:</strong> <span id="selectedRoute"></span></p>
+        <p class="text-sm text-gray-700"><strong>Company:</strong> <span id="selectedCompany"></span></p>
+      </div>
+      
+      <form id="addLRForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Number *</label> 
+        <input type="text" name="lrNumber" required class="input-field w-full" placeholder="LR-001">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Type *</label>
+        <select name="lrType" id="lrTypeSelect" required class="input-field w-full" onchange="toggleLRTypeFields()">
+          <option value="">Select LR Type</option>
+          <option value="To Be Billed">To Be Billed</option>
+          <option value="To Pay">To Pay</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-1" id="lrTypeHint">To Pay: No billing/payments needed</p>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label> 
+        <input type="text" name="productName" required class="input-field w-full" placeholder="Product">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Weight (Kg) *</label> 
+        <input type="number" name="weight" required class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label> 
+        <input type="number" name="quantity" class="input-field w-full" placeholder="0" step="1">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Rate</label> 
+        <input type="number" name="lrRate" class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> 
+        <input type="text" name="lrNotes" class="input-field w-full" placeholder="Additional notes for this LR">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3">
+        <button type="submit" class="btn-primary">Add LR to Entry</button>
+        <button type="button" onclick="closeLRManagement()" class="btn-secondary">Done</button>
+       </div>
+      </form>
+      
+      <div class="border-t pt-4">
+       <h4 class="font-semibold mb-3">LRs for this Entry:</h4>
+       <div id="lrListForEntry" class="space-y-2">
+        <p class="text-sm text-gray-500">No LRs added yet</p>
+       </div>
+      </div>
+     </div>
+     
+    </div><!-- End of Daily Register Tab -->
+    <div id="lr-creation-tab" class="tab-content hidden">
+     
+     <!-- Booking LR List Section -->
+     <div class="card p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Booking LRs</h3>
+       <div class="flex gap-2">
+        <button onclick="toggleAddBookingLRForm()" class="btn-primary" id="toggleBookingLRBtn">➕ Create New LR</button>
+        <button onclick="exportToCSV('booking_lr')" class="btn-secondary text-sm px-3 py-2">📥 Export</button>
+        <button onclick="printTable('booking_lr')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>S.No</th>
+          <th>LR Number</th>
+          <th>Date</th>
+          <th>Truck No.</th>
+          <th>Consignor</th>
+          <th>Consignee</th>
+          <th>Billing To</th>
+          <th>Product</th>
+          <th>Charged Weight</th>
+          <th>Advance</th>
+          <th>Status</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="lrList">
+         <tr>
+          <td colspan="12" class="text-center text-gray-500">No Booking LRs created yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+     
+     <!-- Create/Edit Booking LR Form (Initially Hidden) -->
+     <div class="card p-6 mb-6 hidden" id="bookingLRFormSection">
+      <h2 class="text-xl font-semibold mb-6">Create Booking LR</h2>
+      <p class="text-sm text-gray-600 mb-4">Booking LRs are created by us for bookings made through our company.</p>
+      <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Select from Daily Register *</label> <select id="selectDailyEntry" required class="input-field w-full"> <option value="">-- Select a daily register entry --</option> </select>
+      </div>
+      <form id="lrForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Number *</label> <input type="text" name="lrNumber" required class="input-field w-full" placeholder="LR-001">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Date *</label> <input type="date" name="lrDate" required class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Type *</label>
+        <select name="lrType" id="bookingLRTypeSelect" required class="input-field w-full" onchange="toggleBookingLRTypeFields()">
+          <option value="To Be Billed">To Be Billed (Normal)</option>
+          <option value="To Pay">To Pay (Transaction at Destination)</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-1" id="bookingLRTypeHint">Standard LR with billing and payment tracking</p>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Number *</label> <input type="text" name="truckNumber" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Consignor *</label> <select name="consignorName" required class="input-field w-full" id="lrConsignorSelect"> <option value="">Select Consignor</option> </select>
+       </div>
+       <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-2">Consignor Address</label> <input type="text" name="consignorAddress" readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Consignor GST</label> <input type="text" name="consignorGST" readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Consignee *</label> <select name="consigneeName" required class="input-field w-full" id="lrConsigneeSelect"> <option value="">Select Consignee</option> </select>
+       </div>
+       <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-2">Consignee Address</label> <input type="text" name="consigneeAddress" readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Consignee GST</label> <input type="text" name="consigneeGST" readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Billing To *</label> <select name="billingTo" required class="input-field w-full"> <option value="">Select Billing Party</option> <option value="Party">Party</option> <option value="Consignee">Consignee</option> <option value="Consignor">Consignor</option> <option value="Not Applicable">Not Applicable</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label> <input type="text" name="companyName" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company GST Number</label> <input type="text" name="companyGST" readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">From *</label> <input type="text" name="from" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">To *</label> <input type="text" name="to" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label> <input type="text" name="productName" required class="input-field w-full" placeholder="Product">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Quantity *</label> <input type="number" name="quantity" required class="input-field w-full" placeholder="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Actual Weight (Tonnes)</label> <input type="number" name="actualWeight" id="lrActualWeight" class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Charged Weight (Tonnes) *</label> <input type="number" name="weight" id="lrWeight" required class="input-field w-full" placeholder="0" step="0.01" onchange="calculateLRTotal()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Rate per Tonne *</label> <input type="number" name="ratePerTonne" id="lrRatePerTonne" required class="input-field w-full" placeholder="0" step="0.01" onchange="calculateLRTotal()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Total Amount *</label> <input type="number" name="companyRate" id="lrTotalAmount" readonly class="input-field w-full bg-gray-50" placeholder="Auto-calculated" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Advance to Driver</label> <input type="number" name="advanceToDriver" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Hammali Charges</label> <input type="number" name="hammaliCharges" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Other Deductions</label> <input type="number" name="otherDeductions" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Category *</label> <input type="text" name="paymentCategory" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div><input type="hidden" name="dailyEntryId">
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3">
+        <button type="submit" class="btn-primary">Create LR</button> 
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="button" id="cancelEditLR" class="btn-secondary hidden" onclick="cancelEditBookingLR()">Cancel Edit</button>
+       </div>
+      </form>
+     </div><!-- End of Booking LR Form Section -->
+     
+    </div><!-- End of lr-creation-tab --><!-- Non-Booking LR Tab -->
+    <div id="non-booking-lr-tab" class="tab-content hidden">
+     
+     <!-- Non-Booking LR List Section -->
+     <div class="card p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Non-Booking LRs</h3>
+       <div class="flex gap-2">
+        <button onclick="toggleAddNonBookingLRForm()" class="btn-primary" id="toggleNonBookingLRBtn">➕ Add Non-Booking LR</button>
+        <button onclick="exportToCSV('non_booking_lr')" class="btn-secondary text-sm px-3 py-2">📥 Export</button>
+        <button onclick="printTable('non_booking_lr')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>S.No</th>
+          <th>LR Number</th>
+          <th>LR Type</th>
+          <th>Date</th>
+          <th>Truck No.</th>
+          <th>Party</th>
+          <th>From → To</th>
+          <th>Product</th>
+          <th>Charged Weight</th>
+          <th>Freight</th>
+          <th>Payment</th>
+          <th>Status</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="nonBookingLRList">
+         <tr>
+          <td colspan="13" class="text-center text-gray-500">No Non-Booking LRs created yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+     
+     <!-- Add/Edit Non-Booking LR Form (Initially Hidden) -->
+     <div class="card p-6 mb-6 hidden" id="nonBookingLRFormSection">
+      <h2 class="text-xl font-semibold mb-6">Add Non-Booking LR (Received from Party)</h2>
+      <p class="text-sm text-gray-600 mb-4">Non-Booking LRs are created by parties and sent to us. We send them with the truck.</p>
+      <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Select from Daily Register *</label> <select id="selectDailyEntryNonBooking" required class="input-field w-full"> <option value="">-- Select a daily register entry --</option> </select>
+      </div>
+      <form id="nonBookingLRForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Number *</label> <input type="text" name="lrNumber" required class="input-field w-full" placeholder="Party LR Number">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Date *</label> <input type="date" name="lrDate" required class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Type *</label>
+        <select name="lrType" id="nonBookingLRTypeSelect" required class="input-field w-full" onchange="toggleNonBookingLRTypeFields()">
+          <option value="To Be Billed">To Be Billed (Normal)</option>
+          <option value="To Pay">To Pay (Transaction at Destination)</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-1" id="nonBookingLRTypeHint">Standard LR with billing and payment tracking</p>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Number *</label> <input type="text" name="truckNumber" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Party Name *</label> <input type="text" name="partyName" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">From *</label> <input type="text" name="from" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">To *</label> <input type="text" name="to" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label> <input type="text" name="productName" required class="input-field w-full" placeholder="Product">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Quantity *</label> <input type="number" name="quantity" required class="input-field w-full" placeholder="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Actual Weight (Tonnes)</label> <input type="number" name="actualWeight" id="nbLrActualWeight" class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Charged Weight (Tonnes) *</label> <input type="number" name="weight" id="nbLrWeight" required class="input-field w-full" placeholder="0" step="0.01" onchange="calculateNonBookingLRTotal()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Rate per Tonne *</label> <input type="number" name="ratePerTonne" id="nbLrRatePerTonne" required class="input-field w-full" placeholder="0" step="0.01" onchange="calculateNonBookingLRTotal()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Total Freight Amount *</label> <input type="number" name="freightAmount" id="nbLrTotalAmount" readonly class="input-field w-full bg-gray-50" placeholder="Auto-calculated" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Category *</label> <input type="text" name="paymentCategory" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea name="notes" class="input-field w-full" rows="2" placeholder="Additional notes..."></textarea>
+       </div><input type="hidden" name="dailyEntryId">
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3"><button type="submit" class="btn-primary">Add Non-Booking LR</button> <button type="reset" class="btn-secondary">Clear</button>
+       </div>
+      </form>
+     </div><!-- End of Non-Booking LR Form Section -->
+     
+    </div><!-- End of non-booking-lr-tab --><!-- Challan Book Tab -->
+    <div id="challan-book-tab" class="tab-content hidden">
+     
+     <!-- Challan Book List Section -->
+     <div class="card p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-xl font-semibold">Challan Book - Truck Owner Records</h2>
+       <div class="flex gap-2">
+        <button onclick="toggleAddChallanForm()" class="btn-primary" id="toggleChallanBtn">➕ Add Challan Entry</button>
+        <button onclick="exportToCSV('challan_book')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button>
+        <button onclick="printTable('challan_book')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>S.No</th>
+          <th>Challan No.</th>
+          <th>Date</th>
+          <th>Truck No.</th>
+          <th>LR Numbers</th>
+          <th>From → To</th>
+          <th>Charged Weight</th>
+          <th>Rate/Tonne</th>
+          <th>Total Amount</th>
+          <th>Advance</th>
+          <th>Commission</th>
+          <th>Hammali</th>
+          <th>Other Ded.</th>
+          <th>Balance</th>
+          <th>Status</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="challanBookList">
+         <tr>
+          <td colspan="16" class="text-center text-gray-500">No challan entries yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+     
+     <!-- Add/Edit Challan Form (Initially Hidden) -->
+     <div class="card p-6 mb-6 hidden" id="challanFormSection">
+      <h2 class="text-xl font-semibold mb-6">Add Challan Book Entry</h2>
+      <form id="challanBookForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Select from Daily Register *</label> <select id="selectDailyForChallan" required class="input-field w-full"> <option value="">-- Select a daily register entry --</option> </select>
+       </div>
+       
+       <!-- LR Numbers Display -->
+       <div class="md:col-span-2 lg:col-span-3" id="challanLRNumbersDisplay" style="display: none;">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Linked LR Numbers</label>
+        <div class="input-field w-full bg-blue-50 border-blue-200" id="challanLRNumbers" style="min-height: 42px; display: flex; align-items: center; color: #1e40af; font-weight: 600;">
+          No LRs linked
+        </div>
+       </div>
+       
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Challan Number *</label> <input type="text" name="challanNumber" id="challanNumber" required class="input-field w-full" placeholder="Enter challan number">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Number *</label> <input type="text" name="truckNumber" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Date *</label> <input type="date" name="date" required readonly class="input-field w-full bg-gray-50">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">From *</label> <input type="text" name="from" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">To *</label> <input type="text" name="to" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Actual Weight (Tonnes)</label> <input type="number" name="actualWeight" id="challanActualWeight" class="input-field w-full" placeholder="0" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Charged Weight (Tonnes) *</label> <input type="number" name="weight" id="challanWeight" required class="input-field w-full" placeholder="0" step="0.01" onchange="calculateChallanTotal()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Rate per Tonne *</label> <input type="number" name="ratePerTonne" id="challanRatePerTonne" required class="input-field w-full" placeholder="0" step="0.01" onchange="calculateChallanTotal()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Total Truck Amount *</label> <input type="number" name="truckRate" id="challanTotalAmount" readonly class="input-field w-full bg-gray-50" placeholder="Auto-calculated" step="0.01">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Balance Amount to Pay *</label> <input type="number" name="balanceAmount" id="challanBalanceAmount" readonly class="input-field w-full bg-gray-50" placeholder="Auto-calculated" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Advance Provided</label> <input type="number" name="advancePaidToOwner" id="challanAdvance" class="input-field w-full" placeholder="0" step="0.01" value="0" onchange="calculateChallanBalanceAmount()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Challan Deductions</label> <input type="number" name="challanDeductions" id="challanDeductions" class="input-field w-full" placeholder="0" step="0.01" value="0" onchange="calculateChallanRemainingBalance()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Remaining Balance *</label> <input type="number" name="remainingBalance" id="challanRemainingBalance" readonly class="input-field w-full bg-green-50 font-semibold" placeholder="Auto-calculated" step="0.01" value="0">
+       </div>
+       <div class="flex items-center gap-2">
+         <input type="checkbox" name="commissionDeductedInChallan" id="commissionDeductedInChallan" class="w-4 h-4 text-blue-600 rounded" onchange="calculateChallanRemainingBalance()">
+         <label for="commissionDeductedInChallan" class="text-sm font-medium text-gray-700">Commission Deducted in Challan</label>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Commission</label> <input type="number" name="commission" id="challanCommission" class="input-field w-full" placeholder="0" step="0.01" value="0" onchange="calculateChallanRemainingBalance()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Hammali Charges</label> <input type="number" name="hammaliCharges" id="challanHammaliCharges" class="input-field w-full" placeholder="0" step="0.01" value="0" onchange="calculateChallanRemainingBalance()">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Other Deductions</label> <input type="number" name="otherDeductions" id="challanOtherDeductions" class="input-field w-full" placeholder="0" step="0.01" value="0" onchange="calculateChallanRemainingBalance()">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea name="notes" class="input-field w-full" rows="2" placeholder="Additional notes..."></textarea>
+       </div><input type="hidden" name="dailyEntryId">
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3"><button type="submit" class="btn-primary">Add Challan Entry</button> <button type="reset" class="btn-secondary">Clear</button>
+       </div>
+      </form>
+     </div><!-- End of Challan Form Section -->
+     
+    </div><!-- End of challan-book-tab --><!-- LR Received Tab -->
+    <div id="lr-received-tab" class="tab-content hidden">
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-6">Mark LR as Received</h2>
+      <form id="lrReceivedForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Select LR (To Be Billed Only) *</label> <select id="selectLR" name="lrId" required class="input-field w-full"> <option value="">-- Select an LR --</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Received Date *</label> <input type="date" name="lrReceivedDate" required class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Condition *</label> <select name="lrCondition" required class="input-field w-full" id="lrConditionSelect"> <option value="">-- Select Condition --</option> <option value="Perfectly Alright">Perfectly Alright</option> <option value="Missing Items">Missing Items</option> <option value="Damaged Items">Damaged Items</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Halting Charges (Paid by You)</label> <input type="number" name="haltingCharges" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Halting Charges from Company</label> <input type="number" name="companyHaltingCharges" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Hammali Charges</label> <input type="number" name="hammaliCharges" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea name="notes" class="input-field w-full" rows="2" placeholder="Any halting reasons, etc."></textarea>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3"><button type="submit" class="btn-primary">Mark as Received</button> <button type="reset" class="btn-secondary">Clear</button>
+       </div>
+      </form>
+     </div>
+     <div class="card p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Received LRs (To Be Billed)</h3>
+       <div class="flex gap-2"><button onclick="exportToCSV('lr_received')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button> <button onclick="printTable('lr_received')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>LR No.</th>
+          <th>Type</th>
+          <th>Truck No.</th>
+          <th>Company/Party</th>
+          <th>Received Date</th>
+          <th>LR Condition</th>
+          <th>Halting</th>
+          <th>Hammali</th>
+          <th>Status</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="receivedLRList">
+         <tr>
+          <td colspan="10" class="text-center text-gray-500">No received LRs yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div><!-- Deductions Section Integrated -->
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-6">Add Deduction Entry</h2>
+      <p class="text-sm text-gray-600 mb-4">Add deductions for LRs with missing items or damages. These are adjusted in ledgers and profit &amp; loss.</p>
+      <form id="deductionForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Select LR (With Issues) *</label> <select id="selectLRForDeduction" name="lrId" required class="input-field w-full"> <option value="">-- Select an LR with issues --</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Deduction Type *</label> <select name="deductionType" required class="input-field w-full"> <option value="">-- Select Type --</option> <option value="Missing Items">Missing Items</option> <option value="Damaged Items">Damaged Items</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Damage Charges</label> <input type="number" name="damageCharges" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Other Deductions</label> <input type="number" name="otherDeductions" class="input-field w-full" placeholder="0" step="0.01" value="0">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Damage Details</label> <textarea name="damageDetails" class="input-field w-full" rows="2" placeholder="Details of damages..."></textarea>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Missing Items Details</label> <textarea name="missingDetails" class="input-field w-full" rows="2" placeholder="Details of missing items..."></textarea>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea name="deductionNotes" class="input-field w-full" rows="2" placeholder="Additional notes..."></textarea>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3"><button type="submit" class="btn-primary">Add Deduction</button> <button type="reset" class="btn-secondary">Clear</button>
+       </div>
+      </form>
+     </div>
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-6">Deductions Summary</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+       <div class="card p-6 bg-red-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Total Deductions
+        </div>
+        <div class="text-2xl font-bold text-red-600" id="totalDeductions">
+         ₹0
+        </div>
+       </div>
+       <div class="card p-6 bg-orange-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Damage Charges
+        </div>
+        <div class="text-2xl font-bold text-orange-600" id="totalDamageCharges">
+         ₹0
+        </div>
+       </div>
+       <div class="card p-6 bg-yellow-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Other Deductions
+        </div>
+        <div class="text-2xl font-bold text-yellow-600" id="totalOtherDeductions">
+         ₹0
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="card p-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Deduction Records</h3>
+       <div class="flex gap-2"><button onclick="exportToCSV('deduction_entry')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button> <button onclick="printTable('deduction_entry')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>LR No.</th>
+          <th>LR Type</th>
+          <th>Truck No.</th>
+          <th>Company/Party</th>
+          <th>Received Date</th>
+          <th>Deduction Type</th>
+          <th>Damage Charges</th>
+          <th>Other Deductions</th>
+          <th>Total Deducted</th>
+          <th>Damage Details</th>
+          <th>Missing Details</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="deductionsList">
+         <tr>
+          <td colspan="12" class="text-center text-gray-500">No deductions yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div><!-- Billing Tab -->
+    <div id="billing-tab" class="tab-content hidden">
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-6">Create Bill</h2>
+      <form id="billingForm" class="space-y-4">
+       
+       <!-- Multiple LR Section -->
+       <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+        <div class="flex justify-between items-center mb-4">
+         <label class="block text-sm font-medium text-gray-700">Select LRs for this Bill *</label>
+         <button type="button" id="addLRBtn" class="btn-primary text-sm px-3 py-2">+ Add LR</button>
+        </div>
+        
+        <div id="lrItemsContainer" class="space-y-3">
+         <!-- LR items will be added here dynamically -->
+         <div class="lr-item flex gap-2 items-end p-3 bg-white rounded-lg border border-gray-200">
+          <div class="flex-1">
+           <label class="block text-xs font-medium text-gray-600 mb-1">Select LR</label>
+           <select name="lrId[]" required class="input-field w-full text-sm lr-select"> 
+            <option value="">-- Select a received LR --</option> 
+           </select>
+          </div>
+          <button type="button" class="remove-lr-btn btn-secondary text-sm px-3 py-2 mb-1" style="display: none;">Remove</button>
+         </div>
+        </div>
+       </div>
+       
+       <!-- Bill Details -->
+       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Bill Number *</label> <input type="text" name="billNumber" required class="input-field w-full" placeholder="BILL-001">
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Bill Date *</label> <input type="date" name="billDate" required class="input-field w-full">
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Bill Amount *</label> <input type="number" name="billAmount" required class="input-field w-full" placeholder="0" step="0.01">
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">GST Applicable</label> <select name="gstApplicable" class="input-field w-full"> <option value="false">No</option> <option value="true">Yes</option> </select>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">GST Amount</label> <input type="number" name="gstAmount" class="input-field w-full" placeholder="0" step="0.01" value="0">
+        </div>
+       </div>
+       
+       <div class="flex gap-3"><button type="submit" class="btn-primary">Create Bill</button> <button type="reset" class="btn-secondary">Clear</button>
+       </div>
+      </form>
+     </div>
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-6">LR Sent to Party/Company Tracking</h2>
+      <form id="lrSentForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Select Billed LR *</label> <select id="selectBilledLR" name="lrId" required class="input-field w-full"> <option value="">-- Select a billed LR --</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">LR Sent Date *</label> <input type="date" name="lrSentDate" required class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Sent To *</label> <select name="lrSentTo" id="lrSentToSelect" class="input-field w-full" required> <option value="">-- Select --</option> <option value="Party">Party</option> <option value="Company">Company</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Party/Company Name *</label> <input type="text" name="lrSentToName" id="lrSentToName" required class="input-field w-full" placeholder="Enter name">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Sent By Method *</label> <select id="lrSentMethod" name="lrSentMethod" class="input-field w-full" required> <option value="">-- Select Method --</option> <option value="Courier">Courier</option> <option value="Self">Self</option> </select>
+       </div>
+       <div id="courierDetailsField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Courier Docket Number *</label> <input type="text" id="courierDocketNumber" name="courierDocketNumber" class="input-field w-full" placeholder="Enter docket number">
+       </div>
+       <div id="selfDetailsField" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Person Name (Who Took) *</label> <input type="text" id="selfPersonName" name="selfPersonName" class="input-field w-full" placeholder="Enter person name">
+       </div>
+       <div class="md:col-span-2 lg:col-span-3"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea name="lrSentNotes" class="input-field w-full" rows="2" placeholder="Additional notes..."></textarea>
+       </div>
+       <div class="md:col-span-2 lg:col-span-3 flex gap-3"><button type="submit" class="btn-primary">Record LR Sent</button> <button type="reset" class="btn-secondary">Clear</button>
+       </div>
+      </form>
+     </div>
+     <div class="card p-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Bills Created</h3>
+       <div class="flex gap-2"><button onclick="exportToCSV('bills')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button> <button onclick="printTable('bills')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>Bill No.</th>
+          <th>Bill Date</th>
+          <th>LR No.</th>
+          <th>Billed To</th>
+          <th>Bill Amount</th>
+          <th>GST</th>
+          <th>Total</th>
+          <th>LR Sent</th>
+          <th>Sent Date</th>
+          <th>Sent Method</th>
+          <th>Status</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="billsList">
+         <tr>
+          <td colspan="12" class="text-center text-gray-500">No bills created yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div><!-- Payment Tracking Tab -->
+    <div id="payment-tracking-tab" class="tab-content hidden">
+     <!-- Payment Summary Dashboard -->
+     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div class="card p-6 bg-gradient-to-br from-green-700 to-green-800 text-white">
+       <div class="flex items-center justify-between mb-3">
+        <div class="text-sm opacity-90 font-semibold">Total Receivables</div>
+        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+       </div>
+       <div class="text-4xl font-bold" id="ptTotalReceivables">₹0</div>
+       <div class="text-xs opacity-75 mt-2">💰 Amount to collect</div>
+      </div>
+      <div class="card p-6 bg-gradient-to-br from-red-700 to-red-800 text-white">
+       <div class="flex items-center justify-between mb-3">
+        <div class="text-sm opacity-90 font-semibold">Total Payables</div>
+        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+       </div>
+       <div class="text-4xl font-bold" id="ptTotalPayables">₹0</div>
+       <div class="text-xs opacity-75 mt-2">💸 Amount to pay</div>
+      </div>
+      <div class="card p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+       <div class="flex items-center justify-between mb-3">
+        <div class="text-sm opacity-90 font-semibold">Advances Given</div>
+        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
+       </div>
+       <div class="text-4xl font-bold" id="ptTotalAdvancesGiven">₹0</div>
+       <div class="text-xs opacity-75 mt-2">📤 Paid in advance</div>
+      </div>
+      <div class="card p-6 bg-gradient-to-br from-purple-700 to-purple-800 text-white">
+       <div class="flex items-center justify-between mb-3">
+        <div class="text-sm opacity-90 font-semibold">Advances Received</div>
+        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+       </div>
+       <div class="text-4xl font-bold" id="ptTotalAdvancesReceived">₹0</div>
+       <div class="text-xs opacity-75 mt-2">📥 Received in advance</div>
+      </div>
+     </div>
+
+     <!-- Payment Entry Form -->
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-6">Record Payment Transaction</h2>
+      <form id="paymentForm" class="grid grid-cols-1 gap-6">
+       
+       <!-- Two Column Layout for Receivables and Payables -->
+       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- RECEIVABLES SECTION (LEFT) -->
+        <div class="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+         <h3 class="text-lg font-semibold text-green-700 mb-4 flex items-center">
+          <span class="mr-2">💵</span> Receivables (Money In)
+         </h3>
+         
+         <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select LR Entry to Receive Payment *</label>
+          <select id="selectReceivableEntry" class="input-field w-full" onchange="updateReceivableEntryDetails()">
+           <option value="">-- Select an LR entry --</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Select an LR entry to record receivable payment</p>
+         </div>
+         
+         <!-- Receivable Entry Details -->
+         <div id="receivableEntryDetails" class="bg-white border border-green-300 rounded-lg p-3 text-sm hidden">
+          <h4 class="font-semibold text-green-800 mb-2">Entry Details:</h4>
+          <div id="receivableDetailsContent" class="space-y-1 text-xs">
+           <p class="text-gray-600">Select an entry to see details</p>
+          </div>
+         </div>
+        </div>
+        
+        <!-- PAYABLES SECTION (RIGHT) -->
+        <div class="border-2 border-red-200 rounded-lg p-4 bg-red-50">
+         <h3 class="text-lg font-semibold text-red-700 mb-4 flex items-center">
+          <span class="mr-2">💸</span> Payables (Money Out)
+         </h3>
+         
+         <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select Challan Entry to Make Payment *</label>
+          <select id="selectPayableEntry" class="input-field w-full" onchange="updatePayableEntryDetails()">
+           <option value="">-- Select a challan entry --</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Select a Challan entry to record payable payment</p>
+         </div>
+         
+         <!-- Payable Entry Details -->
+         <div id="payableEntryDetails" class="bg-white border border-red-300 rounded-lg p-3 text-sm hidden">
+          <h4 class="font-semibold text-red-800 mb-2">Entry Details:</h4>
+          <div id="payableDetailsContent" class="space-y-1 text-xs">
+           <p class="text-gray-600">Select an entry to see details</p>
+          </div>
+         </div>
+        </div>
+       </div>
+       
+       <!-- Hidden field to store the selected entry ID -->
+       <input type="hidden" id="selectPaymentEntry" name="entryId" required>
+       <input type="hidden" id="selectedPaymentCategory" name="paymentCategory">
+
+       <!-- Payment Basic Information -->
+       <div>
+        <h4 class="font-semibold text-gray-800 mb-3 border-b pb-2">💰 Payment Information</h4>
+       </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date *</label>
+         <input type="date" name="paymentDate" id="paymentDate" required class="input-field w-full">
+        </div>
+        
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Payment Type *</label>
+         <select name="paymentType" id="paymentType" required class="input-field w-full" onchange="updatePaymentTypeFields()">
+          <option value="">-- Select Type --</option>
+          <optgroup label="💵 Receivables (Money In)">
+           <option value="Advance from Company">Advance from Company</option>
+           <option value="Balance from Company">Balance from Company</option>
+           <option value="Advance from Party">Advance from Party</option>
+           <option value="Balance from Party">Balance from Party</option>
+          </optgroup>
+          <optgroup label="💸 Payables (Money Out)">
+           <option value="Advance to Owner">Advance to Owner</option>
+           <option value="Balance to Owner">Balance to Owner</option>
+           <option value="Commission Payment">Commission Payment</option>
+           <option value="Salary Payment">Salary Payment</option>
+           <option value="Diesel/Fuel Payment">Diesel/Fuel Payment</option>
+           <option value="Maintenance/Repair">Maintenance/Repair</option>
+           <option value="Office Expense">Office Expense</option>
+           <option value="Other Expense">Other Expense</option>
+          </optgroup>
+         </select>
+        </div>
+        
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
+         <input type="number" name="paymentAmount" id="paymentAmount" required class="input-field w-full" placeholder="0.00" step="0.01" min="0" onchange="validatePaymentAmount()">
+         <p class="text-xs text-gray-500 mt-1" id="amountHint">Enter the payment amount</p>
+        </div>
+       </div>
+
+       <!-- Payment Method Details -->
+       <div>
+        <h4 class="font-semibold text-gray-800 mb-3 border-b pb-2">💳 Payment Method</h4>
+       </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Payment Mode *</label>
+         <select name="paymentMode" id="paymentMode" class="input-field w-full" required onchange="updatePaymentModeFields()">
+          <option value="">-- Select Mode --</option>
+          <option value="Cash">💵 Cash</option>
+          <option value="Bank Transfer">🏦 Bank Transfer</option>
+          <option value="Cheque">📝 Cheque</option>
+          <option value="UPI">📱 UPI</option>
+          <option value="Credit">💳 Credit</option>
+          <option value="DD">💰 Demand Draft</option>
+         </select>
+        </div>
+        
+        <div id="referenceNumberField">
+         <label class="block text-sm font-medium text-gray-700 mb-2">Reference/Transaction Number</label>
+         <input type="text" name="paymentReference" id="paymentReference" class="input-field w-full" placeholder="UTR/Cheque/Transaction ID">
+        </div>
+
+        <div id="bankDetailsField" class="hidden">
+         <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+         <input type="text" name="bankName" class="input-field w-full" placeholder="Bank Name">
+        </div>
+       </div>
+
+       <!-- Party/Person Details -->
+       <div>
+        <h4 class="font-semibold text-gray-800 mb-3 border-b pb-2">👤 Party/Person Details</h4>
+       </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Paid By / Received From *</label>
+         <input type="text" name="paidByReceived" id="paidByReceived" required class="input-field w-full" placeholder="Person/Company name">
+         <p class="text-xs text-gray-500 mt-1">Name of the person or company</p>
+        </div>
+
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
+         <input type="tel" name="contactNumber" class="input-field w-full" placeholder="Phone number">
+        </div>
+
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">PAN Number</label>
+         <input type="text" name="panNumber" class="input-field w-full" placeholder="PAN (for TDS tracking)">
+        </div>
+       </div>
+
+       <!-- TDS & GST Details -->
+       <div>
+        <h4 class="font-semibold text-gray-800 mb-3 border-b pb-2">📊 Tax Details (Optional)</h4>
+       </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+         <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" name="tdsApplicable" id="tdsApplicable" onchange="toggleTDSFields()">
+          <span class="text-sm font-medium text-gray-700">TDS Applicable</span>
+         </label>
+        </div>
+
+        <div id="tdsPercentageField" class="hidden">
+         <label class="block text-sm font-medium text-gray-700 mb-2">TDS %</label>
+         <input type="number" name="tdsPercentage" id="tdsPercentage" class="input-field w-full" placeholder="0" step="0.01" min="0" max="100" onchange="calculateTDS()">
+        </div>
+
+        <div id="tdsAmountField" class="hidden">
+         <label class="block text-sm font-medium text-gray-700 mb-2">TDS Amount</label>
+         <input type="number" name="tdsAmount" id="tdsAmount" readonly class="input-field w-full bg-gray-50" placeholder="0.00">
+        </div>
+
+        <div>
+         <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" name="gstApplicable" id="gstApplicable" onchange="toggleGSTFields()">
+          <span class="text-sm font-medium text-gray-700">GST Applicable</span>
+         </label>
+        </div>
+
+        <div id="gstPercentageField" class="hidden">
+         <label class="block text-sm font-medium text-gray-700 mb-2">GST %</label>
+         <input type="number" name="gstPercentage" id="gstPercentage" class="input-field w-full" placeholder="0" step="0.01" min="0" onchange="calculateGST()">
+        </div>
+
+        <div id="gstAmountField" class="hidden">
+         <label class="block text-sm font-medium text-gray-700 mb-2">GST Amount</label>
+         <input type="number" name="gstAmount" id="gstAmount" readonly class="input-field w-full bg-gray-50" placeholder="0.00">
+        </div>
+       </div>
+
+       <!-- Ledger & Adjustment -->
+       <div>
+        <h4 class="font-semibold text-gray-800 mb-3 border-b pb-2">📒 Ledger & Adjustment</h4>
+       </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Adjustment Status *</label>
+         <select name="adjustmentStatus" id="adjustmentStatus" class="input-field w-full" required>
+          <option value="Pending">⏳ Pending - Will adjust later</option>
+          <option value="Auto-Adjusted">✅ Auto-Adjusted - Adjust automatically</option>
+          <option value="Manual-Adjusted">🔧 Manually Adjusted</option>
+         </select>
+         <p class="text-xs text-gray-500 mt-1">Choose how this payment should be adjusted in ledgers</p>
+        </div>
+
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Adjust Against</label>
+         <select name="adjustAgainst" id="adjustAgainst" class="input-field w-full">
+          <option value="">-- Auto Detect --</option>
+          <option value="Company Rate">Company Rate (Revenue)</option>
+          <option value="Truck Rate">Truck Rate (Owner Payment)</option>
+          <option value="Commission">Commission</option>
+          <option value="Freight Amount">Freight Amount</option>
+          <option value="Bill Amount">Bill Amount</option>
+          <option value="Other">Other</option>
+         </select>
+        </div>
+
+        <div id="netAmountField">
+         <label class="block text-sm font-medium text-gray-700 mb-2">Net Amount (After TDS/GST)</label>
+         <input type="number" name="netAmount" id="netAmount" readonly class="input-field w-full bg-green-50 font-semibold" placeholder="0.00">
+        </div>
+       </div>
+
+       <!-- Additional Details -->
+       <div>
+        <h4 class="font-semibold text-gray-800 mb-3 border-b pb-2">📝 Additional Information</h4>
+       </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Payment Notes</label>
+         <textarea name="paymentNotes" class="input-field w-full" rows="3" placeholder="Additional payment details, remarks, or special instructions..."></textarea>
+        </div>
+
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Attach Document</label>
+         <input type="file" name="paymentDocument" id="paymentDocument" class="input-field w-full" accept=".pdf,.jpg,.jpeg,.png">
+         <p class="text-xs text-gray-500 mt-1">Receipt, invoice, or proof of payment</p>
+        </div>
+       </div>
+
+       <!-- Submit Buttons -->
+       <div class="flex gap-3 mt-4">
+        <button type="submit" class="btn-primary">💾 Record Payment Transaction</button>
+        <button type="reset" class="btn-secondary" onclick="resetPaymentForm()">🔄 Clear Form</button>
+        <button type="button" class="btn-secondary" onclick="previewPaymentSummary()">👁️ Preview</button>
+       </div>
+      </form>
+     </div>
+
+     <!-- Payment Filters -->
+     <div class="card p-6 mb-6">
+      <h3 class="text-lg font-semibold mb-4">Filter Payments</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
+        <select id="filterPaymentType" class="input-field w-full">
+         <option value="">All Types</option>
+         <option value="Advance from Company">Advance from Company</option>
+         <option value="Balance from Company">Balance from Company</option>
+         <option value="Advance from Party">Advance from Party</option>
+         <option value="Balance from Party">Balance from Party</option>
+         <option value="Advance to Owner">Advance to Owner</option>
+         <option value="Balance to Owner">Balance to Owner</option>
+         <option value="Commission Payment">Commission Payment</option>
+         <option value="Other Expense">Other Expense</option>
+        </select>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Mode</label>
+        <select id="filterPaymentMode" class="input-field w-full">
+         <option value="">All Modes</option>
+         <option value="Cash">Cash</option>
+         <option value="Bank Transfer">Bank Transfer</option>
+         <option value="Cheque">Cheque</option>
+         <option value="UPI">UPI</option>
+         <option value="Credit">Credit</option>
+        </select>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+        <input type="date" id="filterPaymentDateFrom" class="input-field w-full">
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+        <input type="date" id="filterPaymentDateTo" class="input-field w-full">
+       </div>
+      </div>
+      <div class="flex gap-3 mt-4">
+       <button id="applyPaymentFilters" class="btn-primary">Apply Filters</button>
+       <button id="clearPaymentFilters" class="btn-secondary">Clear Filters</button>
+       <button onclick="exportToCSV('payments')" class="btn-secondary">📥 Export CSV</button>
+      </div>
+     </div>
+
+     <!-- Payment Reconciliation Summary -->
+     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div class="card p-6">
+       <h4 class="font-semibold text-gray-800 mb-3">Company Payments</h4>
+       <div class="space-y-2 text-sm">
+        <div class="flex justify-between border-b pb-2">
+         <span class="text-gray-600">Advances Received:</span>
+         <span class="font-semibold text-green-600" id="ptCompanyAdvances">₹0</span>
+        </div>
+        <div class="flex justify-between border-b pb-2">
+         <span class="text-gray-600">Balance Received:</span>
+         <span class="font-semibold text-green-600" id="ptCompanyBalance">₹0</span>
+        </div>
+        <div class="flex justify-between pt-2">
+         <span class="font-bold text-gray-800">Total Received:</span>
+         <span class="font-bold text-green-700" id="ptCompanyTotal">₹0</span>
+        </div>
+       </div>
+      </div>
+      <div class="card p-6">
+       <h4 class="font-semibold text-gray-800 mb-3">Party Payments</h4>
+       <div class="space-y-2 text-sm">
+        <div class="flex justify-between border-b pb-2">
+         <span class="text-gray-600">Advances Received:</span>
+         <span class="font-semibold text-green-600" id="ptPartyAdvances">₹0</span>
+        </div>
+        <div class="flex justify-between border-b pb-2">
+         <span class="text-gray-600">Balance Received:</span>
+         <span class="font-semibold text-green-600" id="ptPartyBalance">₹0</span>
+        </div>
+        <div class="flex justify-between pt-2">
+         <span class="font-bold text-gray-800">Total Received:</span>
+         <span class="font-bold text-green-700" id="ptPartyTotal">₹0</span>
+        </div>
+       </div>
+      </div>
+      <div class="card p-6">
+       <h4 class="font-semibold text-gray-800 mb-3">Owner Payments</h4>
+       <div class="space-y-2 text-sm">
+        <div class="flex justify-between border-b pb-2">
+         <span class="text-gray-600">Advances Paid:</span>
+         <span class="font-semibold text-red-600" id="ptOwnerAdvances">₹0</span>
+        </div>
+        <div class="flex justify-between border-b pb-2">
+         <span class="text-gray-600">Balance Paid:</span>
+         <span class="font-semibold text-red-600" id="ptOwnerBalance">₹0</span>
+        </div>
+        <div class="flex justify-between pt-2">
+         <span class="font-bold text-gray-800">Total Paid:</span>
+         <span class="font-bold text-red-700" id="ptOwnerTotal">₹0</span>
+        </div>
+       </div>
+      </div>
+     </div>
+
+     <!-- All Payment Transactions Table -->
+     <div class="card p-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">All Payment Transactions</h3>
+       <div class="flex gap-2">
+        <button onclick="exportToCSV('payment_transactions')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button>
+        <button onclick="printTable('payment_transactions')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>Date</th>
+          <th>Payment Type</th>
+          <th>Gross Amount</th>
+          <th>TDS</th>
+          <th>GST</th>
+          <th>Net Amount</th>
+          <th>Mode</th>
+          <th>Reference</th>
+          <th>Truck No.</th>
+          <th>Company/Party</th>
+          <th>Paid By/Received</th>
+          <th>Adjustment</th>
+          <th>Status</th>
+          <th>Actions</th>
+         </tr>
+        </thead>
+        <tbody id="paymentTransactionsList">
+         <tr>
+          <td colspan="14" class="text-center text-gray-500">No payment transactions recorded yet</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+
+     <!-- Pending Payments Filters Section -->
+     <div class="card p-6 mt-6">
+      <h3 class="text-lg font-semibold mb-4">Pending Payments - Filter & View</h3>
+      
+      <!-- Filter Options -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
+        <select id="pendingPaymentTypeFilter" class="input-field w-full">
+         <option value="all">All</option>
+         <option value="receivables">Receivables (To Collect)</option>
+         <option value="payables">Payables (To Pay)</option>
+        </select>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Company/Party Name</label>
+        <input type="text" id="pendingCompanyPartyFilter" class="input-field w-full" placeholder="Filter by name">
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Truck Number</label>
+        <input type="text" id="pendingTruckFilter" class="input-field w-full" placeholder="Filter by truck">
+       </div>
+       <div class="flex items-end">
+        <button onclick="applyPendingPaymentsFilter()" class="btn-primary w-full">Apply Filter</button>
+       </div>
+      </div>
+      
+      <!-- Results Display -->
+      <div class="mt-6">
+       <div class="flex justify-between items-center mb-4">
+        <h4 class="font-semibold text-gray-700">Filtered Results</h4>
+        <div class="text-sm text-gray-600" id="pendingResultsCount">0 results</div>
+       </div>
+       
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Receivables Column -->
+        <div>
+         <h5 class="font-semibold text-green-700 mb-3 pb-2 border-b">Outstanding Receivables (To Collect)</h5>
+         <div id="filteredReceivablesList" class="space-y-2 max-h-96 overflow-y-auto">
+          <p class="text-sm text-gray-500">No receivables to display</p>
+         </div>
+        </div>
+        
+        <!-- Payables Column -->
+        <div>
+         <h5 class="font-semibold text-red-700 mb-3 pb-2 border-b">Outstanding Payables (To Pay)</h5>
+         <div id="filteredPayablesList" class="space-y-2 max-h-96 overflow-y-auto">
+          <p class="text-sm text-gray-500">No payables to display</p>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- Profit & Loss Tab -->
+    <div id="profit-loss-tab" class="tab-content hidden">
+     <div class="card p-6">
+      <div class="flex justify-between items-center mb-6">
+       <div>
+        <h2 class="text-xl font-semibold">Profit &amp; Loss Sheet</h2>
+        <p class="text-sm text-gray-600 mt-1">Track profit for each truck trip</p>
+       </div>
+       <div class="flex gap-2">
+        <button onclick="exportToCSV('profit_loss')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button>
+        <button onclick="printTable('profit_loss')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      
+      <div class="table-container">
+       <table class="w-full">
+        <thead>
+         <tr style="background: #1e3a8a; color: white;">
+          <th style="text-align: center; padding: 12px; width: 80px;">Serial No.</th>
+          <th style="text-align: left; padding: 12px; width: 120px;">Truck Number</th>
+          <th style="text-align: left; padding: 12px; width: 110px;">Date</th>
+          <th style="text-align: left; padding: 12px;">Company/Party Name</th>
+          <th style="text-align: right; padding: 12px; width: 140px;">Total Truck Amount<br><small>(from Challan)</small></th>
+          <th style="text-align: right; padding: 12px; width: 140px;">Total Amount<br><small>(from LR)</small></th>
+          <th style="text-align: right; padding: 12px; width: 120px;">Profit</th>
+         </tr>
+        </thead>
+        <tbody id="profitLossByTruck">
+         <tr>
+          <td colspan="7" class="text-center text-gray-500" style="padding: 20px;">Loading data...</td>
+         </tr>
+        </tbody>
+        <tfoot>
+         <tr style="background: #f3f4f6; font-weight: bold;">
+          <td colspan="4" style="text-align: right; padding: 12px;">Total:</td>
+          <td style="text-align: right; padding: 12px;" id="footerTruckTotal">₹0</td>
+          <td style="text-align: right; padding: 12px;" id="footerLRTotal">₹0</td>
+          <td style="text-align: right; padding: 12px;" id="footerProfitTotal">₹0</td>
+         </tr>
+        </tfoot>
+       </table>
+      </div>
+     </div>
+    </div><!-- Ledger Tab -->
+    <div id="ledger-tab" class="tab-content hidden">
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Ledger Accounts</h2>
+      <p class="text-sm text-gray-600 mb-4">View detailed ledger for all companies, parties, and trucks.</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Ledger Type *</label> <select id="ledgerType" class="input-field w-full"> <option value="">-- Select Type --</option> <option value="company">Company Ledger</option> <option value="party">Party Ledger</option> <option value="truck">Truck Number Ledger</option> <option value="staff">Staff Ledger</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Select Account *</label> <select id="ledgerAccount" class="input-field w-full"> <option value="">-- Select Account --</option> </select>
+       </div>
+       <div class="flex items-end"><button id="viewLedger" class="btn-primary w-full">View Ledger</button>
+       </div>
+      </div>
+     </div>
+     <div id="ledgerSummaryCard" class="card p-6 mb-6 hidden">
+      <h3 class="text-lg font-semibold mb-4">Ledger Summary: <span id="ledgerAccountName"></span></h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+       <div class="card p-6 bg-green-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Total Receivable
+        </div>
+        <div class="text-2xl font-bold text-green-600" id="ledgerReceivable">
+         ₹0
+        </div>
+       </div>
+       <div class="card p-6 bg-red-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Total Payable
+        </div>
+        <div class="text-2xl font-bold text-red-600" id="ledgerPayable">
+         ₹0
+        </div>
+       </div>
+       <div class="card p-6 bg-blue-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Total Transactions
+        </div>
+        <div class="text-2xl font-bold text-blue-600" id="ledgerTransactions">
+         0
+        </div>
+       </div>
+       <div class="card p-6 bg-purple-50">
+        <div class="text-sm text-gray-600 mb-1">
+         Net Balance
+        </div>
+        <div class="text-2xl font-bold text-purple-600" id="ledgerBalance">
+         ₹0
+        </div>
+       </div>
+      </div>
+     </div>
+     <div id="ledgerDetailsCard" class="card p-6 hidden">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Ledger Transactions</h3>
+       <div class="flex gap-2"><button onclick="openLedgerPayment('make')" class="btn-primary text-sm px-3 py-2">💰 Make Payment</button> <button onclick="openLedgerPayment('receive')" class="btn-primary text-sm px-3 py-2">💵 Receive Payment</button> <button onclick="exportToCSV('ledger')" class="btn-secondary text-sm px-3 py-2">📥 Export CSV</button> <button onclick="printTable('ledger')" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>LR/Ref No.</th>
+          <th>Truck No.</th>
+          <th>Debit (₹)</th>
+          <th>Credit (₹)</th>
+          <th>Balance (₹)</th>
+         </tr>
+        </thead>
+        <tbody id="ledgerTransactionsList">
+         <tr>
+          <td colspan="7" class="text-center text-gray-500">No transactions</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div><!-- Reports Tab -->
+    <div id="reports-tab" class="tab-content hidden">
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Filter Reports</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Number</label> <input type="text" id="filterTruck" class="input-field w-full" placeholder="Filter by truck">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Company</label> <input type="text" id="filterCompany" class="input-field w-full" placeholder="Filter by company">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Party</label> <input type="text" id="filterParty" class="input-field w-full" placeholder="Filter by party">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">From</label> <input type="text" id="filterFrom" class="input-field w-full" placeholder="Filter by origin">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">To</label> <input type="text" id="filterTo" class="input-field w-full" placeholder="Filter by destination">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Date From</label> <input type="date" id="filterDateFrom" class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Date To</label> <input type="date" id="filterDateTo" class="input-field w-full">
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Status</label> <select id="filterStatus" class="input-field w-full"> <option value="">All Status</option> <option value="Pending">Pending</option> <option value="LR Created">LR Created</option> <option value="LR Received">LR Received</option> <option value="Billed">Billed</option> <option value="Completed">Completed</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Placed By</label> <select id="filterPlacedBy" class="input-field w-full"> <option value="">All Staff</option> </select>
+       </div>
+       <div><label class="block text-sm font-medium text-gray-700 mb-2">Commission Status</label> <select id="filterCommissionStatus" class="input-field w-full"> <option value="">All</option> <option value="pending">Pending Only</option> <option value="paid">Paid Only</option> </select>
+       </div>
+      </div>
+      <div class="flex gap-3"><button id="applyFilters" class="btn-primary">Apply Filters</button> <button id="clearFilters" class="btn-secondary">Clear Filters</button> <button id="exportReport" class="btn-secondary">📥 Export to CSV</button>
+      </div>
+      <div id="activeFilters" class="mt-4 flex flex-wrap gap-2"></div>
+     </div>
+     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div class="card p-6">
+       <div class="text-sm text-gray-600 mb-1">
+        Filtered Records
+       </div>
+       <div class="text-2xl font-bold text-gray-900" id="filteredCount">
+        0
+       </div>
+      </div>
+      <div class="card p-6">
+       <div class="text-sm text-gray-600 mb-1">
+        Total Revenue
+       </div>
+       <div class="text-2xl font-bold text-green-600" id="filteredRevenue">
+        ₹0
+       </div>
+      </div>
+      <div class="card p-6">
+       <div class="text-sm text-gray-600 mb-1">
+        Total Profit
+       </div>
+       <div class="text-2xl font-bold text-blue-600" id="filteredProfit">
+        ₹0
+       </div>
+      </div>
+     </div>
+     <div class="card p-6">
+      <h3 class="text-lg font-semibold mb-4">Detailed Report</h3>
+      <div class="table-container">
+       <table>
+        <thead>
+         <tr>
+          <th>S.No</th>
+          <th>Date</th>
+          <th>Truck No.</th>
+          <th>Company</th>
+          <th>Party</th>
+          <th>From → To</th>
+          <th>Truck Rate</th>
+          <th>Company Rate</th>
+          <th>Commission</th>
+          <th>Profit</th>
+          <th>Placed By</th>
+          <th>LR Sent To</th>
+          <th>Sent Date</th>
+          <th>Sent Method</th>
+          <th>Docket/Person</th>
+          <th>Status</th>
+         </tr>
+        </thead>
+        <tbody id="reportsList">
+         <tr>
+          <td colspan="16" class="text-center text-gray-500">No data to display</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div><!-- GST Tab -->
+    <div id="gst-tab" class="tab-content hidden">
+     <div class="card p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">GST Report - Booking LRs</h2>
+      
+      <!-- Filters Section -->
+      <div class="mb-6">
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Month</label>
+         <input type="month" id="gstMonthFilter" class="input-field w-full">
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">Search LR Number</label>
+         <input type="text" id="gstSearchLR" class="input-field w-full" placeholder="Enter LR Number">
+        </div>
+        <div class="flex items-end gap-2">
+         <button onclick="filterGSTReport()" class="btn-primary">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filter
+         </button>
+         <button onclick="clearGSTFilters()" class="btn-secondary text-sm px-3 py-2">Clear</button>
+        </div>
+       </div>
+      </div>
+      
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+       <div class="card p-6 bg-blue-50">
+        <div class="text-sm text-gray-600 mb-1">Total LRs</div>
+        <div class="text-2xl font-bold text-blue-600" id="gstTotalLRs">0</div>
+       </div>
+       <div class="card p-6 bg-green-50">
+        <div class="text-sm text-gray-600 mb-1">Total Amount</div>
+        <div class="text-2xl font-bold text-green-600" id="gstTotalAmount">₹0</div>
+       </div>
+       <div class="card p-6 bg-purple-50">
+        <div class="text-sm text-gray-600 mb-1">Total Weight</div>
+        <div class="text-2xl font-bold text-purple-600" id="gstTotalWeight">0 kg</div>
+       </div>
+       <div class="card p-6 bg-orange-50">
+        <div class="text-sm text-gray-600 mb-1">Total Quantity</div>
+        <div class="text-2xl font-bold text-orange-600" id="gstTotalQty">0</div>
+       </div>
+      </div>
+     </div>
+     
+     <div class="card p-6">
+      <div class="flex justify-between items-center mb-4">
+       <h3 class="text-lg font-semibold">Booking LR Details</h3>
+       <div class="flex gap-2">
+        <button onclick="exportGSTToExcel()" class="btn-primary text-sm px-3 py-2">
+         <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+         </svg>
+         Export to Excel
+        </button>
+        <button onclick="printGSTTable()" class="btn-secondary text-sm px-3 py-2">🖨️ Print</button>
+       </div>
+      </div>
+      
+      <div class="table-container">
+       <table class="gst-report-table">
+        <thead>
+         <tr>
+          <th>S.No.</th>
+          <th>LR Number</th>
+          <th>Truck No.</th>
+          <th>LR Date</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Consignor</th>
+          <th>Consignor GST</th>
+          <th>Consignee</th>
+          <th>Consignee GST</th>
+          <th>Product</th>
+          <th>Quantity</th>
+          <th>Weight (kg)</th>
+          <th>Total Amount</th>
+         </tr>
+        </thead>
+        <tbody id="gstList">
+         <tr>
+          <td colspan="14" class="text-center text-gray-500 py-8">Loading GST data...</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div><!-- Masters Tab -->
+    <div id="masters-tab" class="tab-content hidden">
+     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"><!-- Trucks Master -->
+      <div class="card p-6">
+       <h3 class="text-lg font-semibold mb-4">Trucks Master</h3>
+       <form id="truckMasterForm" class="space-y-3 mb-4"><input type="text" name="truckNumber" required class="input-field w-full" placeholder="Truck Number *"> <input type="text" name="truckOwner" required class="input-field w-full" placeholder="Owner Name *"> <input type="text" name="driverName" class="input-field w-full" placeholder="Driver Name"> <input type="tel" name="driverPhone" class="input-field w-full" placeholder="Driver Phone"> <button type="submit" class="btn-primary w-full">Add Truck</button>
+       </form>
+       <div class="space-y-2" id="truckMasterList">
+        <p class="text-sm text-gray-500">No trucks added yet</p>
+       </div>
+      </div><!-- Companies Master -->
+      <div class="card p-6">
+       <h3 class="text-lg font-semibold mb-4">Companies Master (Consignors/Consignees)</h3>
+       <form id="companyMasterForm" class="space-y-3 mb-4"><input type="text" name="companyName" required class="input-field w-full" placeholder="Company Name *"> <input type="text" name="companyGST" class="input-field w-full" placeholder="GST Number"> <textarea name="companyAddress" class="input-field w-full" rows="2" placeholder="Address"></textarea> <button type="submit" class="btn-primary w-full">Add Company</button>
+       </form>
+       <div class="space-y-2" id="companyMasterList">
+        <p class="text-sm text-gray-500">No companies added yet</p>
+       </div>
+      </div><!-- Parties Master -->
+      <div class="card p-6">
+       <h3 class="text-lg font-semibold mb-4">Parties Master</h3>
+       <form id="partyMasterForm" class="space-y-3 mb-4"><input type="text" name="partyName" required class="input-field w-full" placeholder="Party Name *"> <input type="text" name="partyGST" class="input-field w-full" placeholder="GST Number"> <textarea name="partyAddress" class="input-field w-full" rows="2" placeholder="Address"></textarea> <button type="submit" class="btn-primary w-full">Add Party</button>
+       </form>
+       <div class="space-y-2" id="partyMasterList">
+        <p class="text-sm text-gray-500">No parties added yet</p>
+       </div>
+      </div><!-- Staff Master -->
+      <div class="card p-6">
+       <h3 class="text-lg font-semibold mb-4">Staff Master</h3>
+       <form id="staffMasterForm" class="space-y-3 mb-4"><input type="text" name="staffName" required class="input-field w-full" placeholder="Staff Name *"> <input type="number" name="staffSalary" required class="input-field w-full" placeholder="Monthly Salary *" step="0.01"> <button type="submit" class="btn-primary w-full">Add Staff</button>
+       </form>
+       <div class="space-y-2" id="staffMasterList">
+        <p class="text-sm text-gray-500">No staff added yet</p>
+       </div>
+      </div>
+     </div>
+    </div>
+   </main>
+  </div><!-- Hidden File Input for Restore --> <input type="file" id="restoreFileInput" accept=".json" class="hidden"> <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50">
+   <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+    <h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
+    <p class="text-gray-600 mb-6">Are you sure you want to delete this record? This action cannot be undone.</p>
+    <div class="flex gap-3 justify-end"><button id="cancelDelete" class="btn-secondary">Cancel</button> <button id="confirmDelete" class="btn-primary bg-red-600 hover:bg-red-700">Delete</button>
+    </div>
+   </div>
+  </div><!-- Delete All Data Password Modal -->
+  <div id="deleteAllModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50">
+   <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border-4 border-red-500">
+    <div class="text-center mb-4">
+      <svg class="w-16 h-16 text-red-600 mx-auto mb-2" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <h3 class="text-2xl font-bold text-red-600 mb-2">⚠️ DANGER ZONE ⚠️</h3>
+      <p class="text-lg font-semibold text-gray-800">Delete ALL Data</p>
+    </div>
+    <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+      <p class="text-red-800 font-semibold mb-2">This will permanently delete:</p>
+      <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+        <li>All transportation records</li>
+        <li>All party accounts & ledgers</li>
+        <li>All truck information</li>
+        <li>All financial data</li>
+        <li>All stored backups</li>
+      </ul>
+      <p class="text-red-900 font-bold mt-3 text-center">⚠️ THIS CANNOT BE UNDONE! ⚠️</p>
+    </div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Enter Password to Confirm *</label>
+      <input type="password" id="deleteAllPassword" class="input-field w-full" placeholder="Enter password" autofocus>
+      <p class="text-xs text-gray-500 mt-1">Only authorized personnel can delete all data</p>
+    </div>
+    <div class="flex gap-3 justify-end">
+      <button id="cancelDeleteAll" class="btn-secondary">Cancel</button>
+      <button id="confirmDeleteAll" class="btn-primary bg-red-600 hover:bg-red-700">
+        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Delete Everything
+      </button>
+    </div>
+   </div>
+  </div><!-- Ledger Payment Modal -->
+  <div id="ledgerPaymentModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50">
+   <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 shadow-xl">
+    <h3 class="text-lg font-semibold mb-4"><span id="ledgerPaymentModalTitle">Make Payment - </span><span id="paymentAccountName"></span></h3>
+    <form id="ledgerPaymentForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Date *</label> <input type="date" name="paymentDate" required class="input-field w-full">
+     </div>
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Amount *</label> <input type="number" name="paymentAmount" required class="input-field w-full" placeholder="0" step="0.01">
+     </div>
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Type *</label> <select name="paymentType" required class="input-field w-full"> <option value="">Select Type</option> <option value="Advance">Advance</option> <option value="Balance">Balance</option> <option value="Full Payment">Full Payment</option> </select>
+     </div>
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label> <select name="paymentMethod" class="input-field w-full"> <option value="Cash">Cash</option> <option value="Bank Transfer">Bank Transfer</option> <option value="Cheque">Cheque</option> <option value="UPI">UPI</option> </select>
+     </div>
+     <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-2">Reference/Notes</label> <textarea name="paymentNotes" class="input-field w-full" rows="2" placeholder="Payment reference or notes..."></textarea>
+     </div><input type="hidden" name="ledgerType" id="paymentLedgerType"> <input type="hidden" name="ledgerAccount" id="paymentLedgerAccount"> <input type="hidden" name="paymentAction" id="paymentLedgerAction">
+     <div class="md:col-span-2 flex gap-3 justify-end"><button type="button" id="cancelLedgerPayment" class="btn-secondary">Cancel</button> <button type="submit" class="btn-primary">Record Payment</button>
+     </div>
+    </form>
+   </div>
+   
+   <!-- Staff Ledger Tab -->
+   <div id="staff-ledger-tab" class="tab-content hidden">
+    <div class="card p-6 mb-6">
+     <h2 class="text-xl font-semibold mb-4">Staff Ledger Accounts</h2>
+     <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Select Staff Member</label>
+      <select id="staffLedgerSelect" class="input-field w-full">
+       <option value="">-- Select Staff --</option>
+      </select>
+     </div>
+     
+     <div id="staffLedgerDetails" class="hidden">
+      <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg mb-6">
+       <h3 class="text-lg font-semibold mb-4" id="staffLedgerName"></h3>
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-lg shadow">
+         <div class="text-sm text-gray-600">Total Commission Earned</div>
+         <div class="text-2xl font-bold text-green-600" id="staffTotalCommission">₹0</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow">
+         <div class="text-sm text-gray-600">Salary Paid</div>
+         <div class="text-2xl font-bold text-blue-600" id="staffTotalSalary">₹0</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow">
+         <div class="text-sm text-gray-600" id="staffBalanceLabel">Net Balance</div>
+         <div class="text-2xl font-bold" id="staffNetBalance">₹0</div>
+         <div class="text-xs text-gray-500 mt-1">Commission - Salary Paid</div>
+        </div>
+       </div>
+      </div>
+      
+      <div class="mb-6">
+       <h4 class="font-semibold mb-3">Commission Transactions</h4>
+       <div class="table-container">
+        <table>
+         <thead>
+          <tr>
+           <th>Date</th>
+           <th>Truck Number</th>
+           <th>Route</th>
+           <th>Commission Amount</th>
+           <th>Status</th>
+          </tr>
+         </thead>
+         <tbody id="staffCommissionList">
+          <tr><td colspan="5" class="text-center text-gray-500">No commission records</td></tr>
+         </tbody>
+        </table>
+       </div>
+      </div>
+      
+      <div>
+       <h4 class="font-semibold mb-3">Salary Payments</h4>
+       <div class="table-container">
+        <table>
+         <thead>
+          <tr>
+           <th>Date</th>
+           <th>Amount</th>
+           <th>Notes</th>
+          </tr>
+         </thead>
+         <tbody id="staffSalaryList">
+          <tr><td colspan="3" class="text-center text-gray-500">No salary payments</td></tr>
+         </tbody>
+        </table>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   
+  </div>
+
+  <!-- Main Dashboard JavaScript -->
+  <script src="js/dashboard-main.js"></script>
+  
+  <!-- Enhanced Security and Utility Functions -->
+  <script src="js/utils.js"></script>
+  <script src="js/dashboard-security.js"></script>
+  <script src="js/dashboard-fixes.js"></script>
+  <script src="js/dashboard-deduplication.js"></script>
+
+</body>
+</html>

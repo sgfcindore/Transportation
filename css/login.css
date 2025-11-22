@@ -1,0 +1,501 @@
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      overflow-x: hidden;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+      min-height: 100vh;
+    }
+    
+    .main-container {
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 60px;
+    }
+    
+    /* Map Animation Container */
+    .map-container {
+      flex: 1;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: fadeIn 1s ease-out;
+    }
+    
+    .map-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      height: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 30px 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .map-title {
+      color: white;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .map-subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      text-align: center;
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+    
+    /* India Map SVG Styles */
+    .india-map {
+      width: 100%;
+      height: 350px;
+    }
+    
+    .state-boundary {
+      fill: #1a365d;
+      stroke: #60a5fa;
+      stroke-width: 1;
+      opacity: 0.9;
+      transition: all 0.3s ease;
+    }
+    
+    .state-boundary:hover {
+      fill: #2563eb;
+      opacity: 1;
+    }
+    
+    .target-state {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .target-state:hover {
+      transform: scale(1.1);
+      filter: brightness(1.3);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    
+    .indore-hub {
+      fill: #ef4444;
+      stroke: #ffffff;
+      stroke-width: 2;
+      filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
+      animation: hubPulse 1.5s infinite;
+    }
+    
+    @keyframes hubPulse {
+      0%, 100% { r: 6; }
+      50% { r: 8; }
+    }
+    
+    .route-path {
+      fill: none;
+      stroke: #fbbf24;
+      stroke-width: 2;
+      stroke-dasharray: 5, 5;
+      opacity: 0;
+      animation: drawPath 3s ease-in-out infinite;
+    }
+    
+    @keyframes drawPath {
+      0% {
+        stroke-dashoffset: 100;
+        opacity: 0;
+      }
+      20% {
+        opacity: 0.6;
+      }
+      80% {
+        stroke-dashoffset: 0;
+        opacity: 0.6;
+      }
+      100% {
+        stroke-dashoffset: 0;
+        opacity: 0;
+      }
+    }
+    
+    .truck-icon {
+      animation: moveTruck 3s ease-in-out infinite;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    
+    @keyframes moveTruck {
+      0% { offset-distance: 0%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { offset-distance: 100%; opacity: 0; }
+    }
+    
+    .destination-marker {
+      fill: #10b981;
+      stroke: #ffffff;
+      stroke-width: 1.5;
+      animation: markerPulse 2s infinite;
+    }
+    
+    @keyframes markerPulse {
+      0%, 100% { r: 4; opacity: 0.7; }
+      50% { r: 6; opacity: 1; }
+    }
+    
+    /* Login Card Styles */
+    .login-section {
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: 480px;
+    }
+    
+    .login-card {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+      padding: 50px 45px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      animation: slideIn 0.6s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .logo-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .company-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+    }
+    
+    .company-logo svg {
+      width: 45px;
+      height: 45px;
+      color: white;
+    }
+    
+    .company-name {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    
+    .company-tagline {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    
+    .welcome-text {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+    
+    .welcome-text h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    
+    .welcome-text p {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    .form-group {
+      margin-bottom: 25px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 10px;
+      letter-spacing: 0.3px;
+    }
+    
+    .input-wrapper {
+      position: relative;
+    }
+    
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      pointer-events: none;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 14px 16px 14px 48px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 400;
+      color: #1e293b;
+      background: #f8fafc;
+      transition: all 0.3s ease;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-input::placeholder {
+      color: #94a3b8;
+    }
+    
+    .password-toggle {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    
+    .password-toggle:hover {
+      color: #3b82f6;
+    }
+    
+    .remember-forgot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #475569;
+      cursor: pointer;
+    }
+    
+    .remember-me input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #3b82f6;
+    }
+    
+    .forgot-password {
+      color: #3b82f6;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .forgot-password:hover {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+    
+    .login-button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .login-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+    }
+    
+    .login-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .footer-links {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 25px;
+      border-top: 1px solid #e2e8f0;
+    }
+    
+    .footer-links p {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    .error-message {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .error-message.show {
+      display: flex;
+    }
+    
+    .success-message {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #16a34a;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .success-message.show {
+      display: flex;
+    }
+    
+    /* Stats Section */
+    .stats-section {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-number {
+      color: #fbbf24;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .stat-label {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: column;
+        gap: 40px;
+      }
+      
+      .map-container {
+        max-width: 500px;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .main-container {
+        padding: 10px;
+      }
+      
+      .login-card {
+        padding: 35px 30px;
+      }
+      
+      .company-name {
+        font-size: 22px;
+      }
+      
+      .welcome-text h2 {
+        font-size: 20px;
+      }
+      
+      .map-wrapper {
+        display: none;
+      }
+    }
