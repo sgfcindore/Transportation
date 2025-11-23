@@ -1835,42 +1835,152 @@
       </div>
      </div>
     </div><!-- Masters Tab -->
-    <div id="masters-tab" class="tab-content hidden">
-     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"><!-- Trucks Master -->
-      <div class="card p-6">
-       <h3 class="text-lg font-semibold mb-4">Trucks Master</h3>
-       <form id="truckMasterForm" class="space-y-3 mb-4"><input type="text" name="truckNumber" required class="input-field w-full" placeholder="Truck Number *"> <input type="text" name="truckOwner" required class="input-field w-full" placeholder="Owner Name *"> <input type="text" name="driverName" class="input-field w-full" placeholder="Driver Name"> <input type="tel" name="driverPhone" class="input-field w-full" placeholder="Driver Phone"> <button type="submit" class="btn-primary w-full">Add Truck</button>
-       </form>
-       <div class="space-y-2" id="truckMasterList">
-        <p class="text-sm text-gray-500">No trucks added yet</p>
-       </div>
-      </div><!-- Companies Master -->
-      <div class="card p-6">
-       <h3 class="text-lg font-semibold mb-4">Companies Master (Consignors/Consignees)</h3>
-       <form id="companyMasterForm" class="space-y-3 mb-4"><input type="text" name="companyName" required class="input-field w-full" placeholder="Company Name *"> <input type="text" name="companyGST" class="input-field w-full" placeholder="GST Number"> <textarea name="companyAddress" class="input-field w-full" rows="2" placeholder="Address"></textarea> <button type="submit" class="btn-primary w-full">Add Company</button>
-       </form>
-       <div class="space-y-2" id="companyMasterList">
-        <p class="text-sm text-gray-500">No companies added yet</p>
-       </div>
-      </div><!-- Parties Master -->
-      <div class="card p-6">
-       <h3 class="text-lg font-semibold mb-4">Parties Master</h3>
-       <form id="partyMasterForm" class="space-y-3 mb-4"><input type="text" name="partyName" required class="input-field w-full" placeholder="Party Name *"> <input type="text" name="partyGST" class="input-field w-full" placeholder="GST Number"> <textarea name="partyAddress" class="input-field w-full" rows="2" placeholder="Address"></textarea> <button type="submit" class="btn-primary w-full">Add Party</button>
-       </form>
-       <div class="space-y-2" id="partyMasterList">
-        <p class="text-sm text-gray-500">No parties added yet</p>
-       </div>
-      </div><!-- Staff Master -->
-      <div class="card p-6">
-       <h3 class="text-lg font-semibold mb-4">Staff Master</h3>
-       <form id="staffMasterForm" class="space-y-3 mb-4"><input type="text" name="staffName" required class="input-field w-full" placeholder="Staff Name *"> <input type="number" name="staffSalary" required class="input-field w-full" placeholder="Monthly Salary *" step="0.01"> <button type="submit" class="btn-primary w-full">Add Staff</button>
-       </form>
-       <div class="space-y-2" id="staffMasterList">
-        <p class="text-sm text-gray-500">No staff added yet</p>
-       </div>
+    <!-- Masters Tab - IMPROVED COMPACT DESIGN -->
+<div id="masters-tab" class="tab-content hidden">
+  
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    
+    <!-- Trucks Master - Compact Card -->
+    <div class="card compact">
+      <h3 class="section-header text-base mb-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        Trucks Master
+      </h3>
+      
+      <form id="truckMasterForm" class="form-compact grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Truck Number *</label>
+          <input type="text" name="truckNumber" required class="input-field w-full" placeholder="GJ01AB1234">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Owner Name *</label>
+          <input type="text" name="truckOwner" required class="input-field w-full" placeholder="Owner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Driver Name</label>
+          <input type="text" name="driverName" class="input-field w-full" placeholder="Driver">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Driver Phone</label>
+          <input type="tel" name="driverPhone" class="input-field w-full" placeholder="9876543210">
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" class="btn-primary w-full btn-sm">➕ Add Truck</button>
+        </div>
+      </form>
+      
+      <div class="space-y-2 max-h-64 overflow-y-auto" id="truckMasterList">
+        <p class="text-sm text-gray-500 text-center py-4">No trucks added yet</p>
       </div>
-     </div>
     </div>
+    
+    <!-- Companies Master - Compact Card -->
+    <div class="card compact">
+      <h3 class="section-header text-base mb-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+        Companies Master
+      </h3>
+      
+      <form id="companyMasterForm" class="form-compact space-y-2 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Company Name *</label>
+          <input type="text" name="companyName" required class="input-field w-full" placeholder="ABC Transport Ltd">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">GST Number</label>
+            <input type="text" name="companyGST" class="input-field w-full" placeholder="27AAAAA1234A1Z5">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone</label>
+            <input type="tel" name="companyPhone" class="input-field w-full" placeholder="9876543210">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Address</label>
+          <textarea name="companyAddress" class="input-field w-full" rows="2" placeholder="Complete address..."></textarea>
+        </div>
+        <button type="submit" class="btn-primary w-full btn-sm">➕ Add Company</button>
+      </form>
+      
+      <div class="space-y-2 max-h-64 overflow-y-auto" id="companyMasterList">
+        <p class="text-sm text-gray-500 text-center py-4">No companies added yet</p>
+      </div>
+    </div>
+    
+    <!-- Parties Master - Compact Card -->
+    <div class="card compact">
+      <h3 class="section-header text-base mb-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        Parties Master
+      </h3>
+      
+      <form id="partyMasterForm" class="form-compact space-y-2 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Party Name *</label>
+          <input type="text" name="partyName" required class="input-field w-full" placeholder="Party Name">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">GST Number</label>
+            <input type="text" name="partyGST" class="input-field w-full" placeholder="24BBBBB5678B1Z5">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone</label>
+            <input type="tel" name="partyPhone" class="input-field w-full" placeholder="9876543210">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Address</label>
+          <textarea name="partyAddress" class="input-field w-full" rows="2" placeholder="Complete address..."></textarea>
+        </div>
+        <button type="submit" class="btn-primary w-full btn-sm">➕ Add Party</button>
+      </form>
+      
+      <div class="space-y-2 max-h-64 overflow-y-auto" id="partyMasterList">
+        <p class="text-sm text-gray-500 text-center py-4">No parties added yet</p>
+      </div>
+    </div>
+    
+    <!-- Staff Master - Compact Card -->
+    <div class="card compact">
+      <h3 class="section-header text-base mb-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        Staff Master
+      </h3>
+      
+      <form id="staffMasterForm" class="form-compact space-y-2 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Staff Name *</label>
+          <input type="text" name="staffName" required class="input-field w-full" placeholder="Staff Name">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Monthly Salary *</label>
+            <input type="number" name="staffSalary" required class="input-field w-full" placeholder="25000" step="0.01">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone</label>
+            <input type="tel" name="staffPhone" class="input-field w-full" placeholder="9876543210">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary w-full btn-sm">➕ Add Staff</button>
+      </form>
+      
+      <div class="space-y-2 max-h-64 overflow-y-auto" id="staffMasterList">
+        <p class="text-sm text-gray-500 text-center py-4">No staff added yet</p>
+      </div>
+    </div>
+  </div>
+</div>
    </main>
   </div><!-- Hidden File Input for Restore --> <input type="file" id="restoreFileInput" accept=".json" class="hidden"> <!-- Delete Confirmation Modal -->
   <div id="deleteModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50">
