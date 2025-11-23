@@ -1,4 +1,4 @@
-const defaultConfig = {
+    const defaultConfig = {
       company_title: "South Gujrat Freight Carrier"
     };
 
