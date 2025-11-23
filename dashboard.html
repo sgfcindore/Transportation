@@ -147,52 +147,82 @@
       <!-- Alerts will be dynamically populated here -->
      </div>
      
-     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <div class="card p-6 bg-gradient-to-br from-blue-700 to-blue-800 text-white">
-       <div class="flex items-center justify-between mb-3">
-        <div class="text-xs opacity-90 font-semibold uppercase tracking-wide">
-         Total Bookings
-        </div>
-        <svg class="w-7 h-7 opacity-70" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-       </div>
-       <div class="text-4xl font-bold" id="totalBookings">
-        0
-       </div>
-       <div class="text-xs opacity-75 mt-2">
-        📦 Active shipments
-       </div>
-      </div>
-      <div class="card p-6 bg-gradient-to-br from-orange-500 to-red-500 text-white transform hover:scale-105 transition-transform">
-       <div class="flex items-center justify-between mb-3">
-        <div class="text-sm opacity-90 font-semibold">
-         Pending Payments
-        </div>
-        <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-       </div>
-       <div class="text-4xl font-bold" id="pendingPayments">
-        ₹0
-       </div>
-       <div class="text-xs opacity-75 mt-2">
-        ⏳ Awaiting collection
-       </div>
-      </div>
-     </div>
-     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="card p-6">
-       <h3 class="text-lg font-semibold mb-4">Recent Bookings</h3>
-       <div id="recentBookings" class="space-y-3">
-        <p class="text-gray-500 text-sm">No bookings yet</p>
-       </div>
-      </div>
-      <div class="card p-6">
-       <h3 class="text-lg font-semibold mb-4">Pending LRs</h3>
-       <div id="pendingLRs" class="space-y-3">
-        <p class="text-gray-500 text-sm">No pending LRs</p>
-       </div>
-      </div>
-     </div>
+     <!-- Stats Cards - Compact 4-Column Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+  <!-- Total Bookings -->
+  <div class="stat-card" style="border-left-color: #3b82f6;">
+    <div class="flex items-center justify-between mb-2">
+      <div class="stat-label">Total Bookings</div>
+      <svg class="w-6 h-6 text-blue-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    </div>
+    <div class="stat-value" id="totalBookings">0</div>
+    <div class="text-xs text-gray-500 mt-1">📦 Active shipments</div>
+  </div>
+  
+  <!-- Pending Payments -->
+  <div class="stat-card" style="border-left-color: #f59e0b;">
+    <div class="flex items-center justify-between mb-2">
+      <div class="stat-label">Pending Payments</div>
+      <svg class="w-6 h-6 text-orange-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <div class="stat-value text-orange-600" id="pendingPayments">₹0</div>
+    <div class="text-xs text-gray-500 mt-1">⏳ Awaiting collection</div>
+  </div>
+  
+  <!-- Total Revenue -->
+  <div class="stat-card" style="border-left-color: #10b981;">
+    <div class="flex items-center justify-between mb-2">
+      <div class="stat-label">Total Revenue</div>
+      <svg class="w-6 h-6 text-green-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <div class="stat-value text-green-600" id="totalRevenue">₹0</div>
+    <div class="text-xs text-gray-500 mt-1">💰 Collected amount</div>
+  </div>
+  
+  <!-- Active Trucks -->
+  <div class="stat-card" style="border-left-color: #8b5cf6;">
+    <div class="flex items-center justify-between mb-2">
+      <div class="stat-label">Active Trucks</div>
+      <svg class="w-6 h-6 text-purple-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    </div>
+    <div class="stat-value text-purple-600" id="activeTrucks">0</div>
+    <div class="text-xs text-gray-500 mt-1">🚛 On the road</div>
+  </div>
+</div>
+     <!-- Quick Overview - Compact 2 Columns -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="card compact">
+    <h3 class="section-header text-base mb-3">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      Recent Bookings
+    </h3>
+    <div id="recentBookings" class="space-y-2 max-h-80 overflow-y-auto">
+      <p class="text-gray-500 text-sm">No bookings yet</p>
+    </div>
+  </div>
+  
+  <div class="card compact">
+    <h3 class="section-header text-base mb-3">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Pending LRs
+    </h3>
+    <div id="pendingLRs" class="space-y-2 max-h-80 overflow-y-auto">
+      <p class="text-gray-500 text-sm">No pending LRs</p>
+    </div>
+  </div>
+</div>
     </div><!-- Daily Register Tab -->
     <div id="daily-register-tab" class="tab-content hidden">
      
