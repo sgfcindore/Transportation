@@ -140,90 +140,76 @@
      </div>
     </div>
    </div><!-- Main Content -->
-   <main class="px-6 py-6"><!-- Dashboard Tab -->
+   <main class="px-6 py-6">
+    <!-- Dashboard Tab -->
     <div id="dashboard-tab" class="tab-content">
-     <!-- Alert System -->
-     <div id="alertSection" class="mb-6">
-      <!-- Alerts will be dynamically populated here -->
-     </div>
-     
-     <!-- Stats Cards - Compact 4-Column Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-  <!-- Total Bookings -->
-  <div class="stat-card" style="border-left-color: #3b82f6;">
-    <div class="flex items-center justify-between mb-2">
-      <div class="stat-label">Total Bookings</div>
-      <svg class="w-6 h-6 text-blue-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
+      
+      <!-- Beautiful Bible Verse Section -->
+      <div class="mb-8">
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-white to-purple-50 border-2 border-blue-100 shadow-lg">
+          <!-- Decorative Background Pattern -->
+          <div class="absolute inset-0 opacity-5">
+            <div class="absolute top-0 left-0 w-64 h-64 bg-blue-400 rounded-full filter blur-3xl"></div>
+            <div class="absolute bottom-0 right-0 w-64 h-64 bg-purple-400 rounded-full filter blur-3xl"></div>
+          </div>
+          
+          <!-- Content -->
+          <div class="relative p-8 md:p-12 text-center">
+            <!-- Decorative Quote Icon -->
+            <div class="flex justify-center mb-6">
+              <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Bible Verse -->
+            <div class="space-y-4">
+              <p class="text-2xl md:text-3xl lg:text-4xl font-serif text-gray-800 leading-relaxed font-medium">
+                Whatever you do, work at it with all your heart,
+                <span class="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 font-bold">
+                  as working for the Lord
+                </span>
+              </p>
+              
+              <!-- Reference -->
+              <div class="flex items-center justify-center gap-3 pt-4">
+                <div class="h-px w-12 bg-gradient-to-r from-transparent via-blue-300 to-transparent"></div>
+                <p class="text-lg md:text-xl text-blue-700 font-semibold tracking-wide">
+                  Colossians 3:23
+                </p>
+                <div class="h-px w-12 bg-gradient-to-r from-transparent via-blue-300 to-transparent"></div>
+              </div>
+            </div>
+            
+            <!-- Decorative Bottom Elements -->
+            <div class="mt-8 flex justify-center gap-2">
+              <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+              <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Alert System -->
+      <div id="alertSection">
+        <!-- Alerts will be dynamically populated here -->
+        <!-- Beautiful empty state when no alerts -->
+        <div class="text-center py-12" id="noAlertsMessage">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-700 mb-2">All Clear!</h3>
+          <p class="text-gray-500">No alerts at the moment. Everything is running smoothly.</p>
+        </div>
+      </div>
+      
     </div>
-    <div class="stat-value" id="totalBookings">0</div>
-    <div class="text-xs text-gray-500 mt-1">📦 Active shipments</div>
-  </div>
-  
-  <!-- Pending Payments -->
-  <div class="stat-card" style="border-left-color: #f59e0b;">
-    <div class="flex items-center justify-between mb-2">
-      <div class="stat-label">Pending Payments</div>
-      <svg class="w-6 h-6 text-orange-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </div>
-    <div class="stat-value text-orange-600" id="pendingPayments">₹0</div>
-    <div class="text-xs text-gray-500 mt-1">⏳ Awaiting collection</div>
-  </div>
-  
-  <!-- Total Revenue -->
-  <div class="stat-card" style="border-left-color: #10b981;">
-    <div class="flex items-center justify-between mb-2">
-      <div class="stat-label">Total Revenue</div>
-      <svg class="w-6 h-6 text-green-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </div>
-    <div class="stat-value text-green-600" id="totalRevenue">₹0</div>
-    <div class="text-xs text-gray-500 mt-1">💰 Collected amount</div>
-  </div>
-  
-  <!-- Active Trucks -->
-  <div class="stat-card" style="border-left-color: #8b5cf6;">
-    <div class="flex items-center justify-between mb-2">
-      <div class="stat-label">Active Trucks</div>
-      <svg class="w-6 h-6 text-purple-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    </div>
-    <div class="stat-value text-purple-600" id="activeTrucks">0</div>
-    <div class="text-xs text-gray-500 mt-1">🚛 On the road</div>
-  </div>
-</div>
-     <!-- Quick Overview - Compact 2 Columns -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-  <div class="card compact">
-    <h3 class="section-header text-base mb-3">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      Recent Bookings
-    </h3>
-    <div id="recentBookings" class="space-y-2 max-h-80 overflow-y-auto">
-      <p class="text-gray-500 text-sm">No bookings yet</p>
-    </div>
-  </div>
-  
-  <div class="card compact">
-    <h3 class="section-header text-base mb-3">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-      Pending LRs
-    </h3>
-    <div id="pendingLRs" class="space-y-2 max-h-80 overflow-y-auto">
-      <p class="text-gray-500 text-sm">No pending LRs</p>
-    </div>
-  </div>
-</div>
-    </div><!-- Daily Register Tab -->
+    <!-- Daily Register Tab -->
     <div id="daily-register-tab" class="tab-content hidden">
      
      <!-- List View Section -->
