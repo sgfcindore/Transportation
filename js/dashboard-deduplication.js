@@ -1,36 +1,34 @@
 /**
- * DUPLICATION FIX MODULE
+ * DUPLICATION FIX MODULE - CORRECTED VERSION
  * Prevents duplicate LR numbers, challans, and records
- * Add this file AFTER dashboard-fixes.js
+ * Add this file AFTER dashboard-main.js
  */
 
 (function() {
   'use strict';
   
-  console.log('🔧 Loading duplication prevention module...');
+  console.log('🔧 Loading duplication prevention module (CORRECTED)...');
   
   /**
    * Track form submissions to prevent double-clicks
    */
-  const submittingForms = new Set();
+  const submittingForms = new Map(); // Changed to Map to track timestamp
   
   /**
    * Prevent double form submissions
    */
   function preventDoubleSubmit(formId) {
-    if (submittingForms.has(formId)) {
-      console.warn('⚠️ Form already submitting:', formId);
+    const now = Date.now();
+    const lastSubmit = submittingForms.get(formId);
+    
+    // If submitted within last 2 seconds, block it
+    if (lastSubmit && (now - lastSubmit) < 2000) {
+      console.warn('⚠️ Form already submitting (within 2s):', formId);
       return false; // Prevent submission
     }
-    submittingForms.add(formId);
+    
+    submittingForms.set(formId, now);
     return true; // Allow submission
-  }
-  
-  /**
-   * Allow form to be submitted again
-   */
-  function allowFormResubmit(formId) {
-    submittingForms.delete(formId);
   }
   
   /**
@@ -62,7 +60,7 @@
     const normalized = challanNumber.trim().toUpperCase();
     
     return window.allRecords.some(record => {
-      if (record.type === 'challan') {
+      if (record.type === 'challan_book') {
         const recordChallan = (record.challanNumber || '').trim().toUpperCase();
         const isSameChallan = recordChallan === normalized;
         const isDifferentRecord = record.__backendId !== excludeId;
@@ -110,199 +108,164 @@
   }
   
   /**
-   * Wrap form submit handlers to prevent double submissions
+   * CRITICAL: Intercept at the SDK level to prevent duplicate creates
    */
-  function wrapFormHandler(originalHandler, formName) {
-    return async function(e) {
-      e.preventDefault();
+  if (window.dataSdk && window.dataSdk.create) {
+    const originalCreate = window.dataSdk.create;
+    let lastCreateCall = { data: null, timestamp: 0 };
+    
+    window.dataSdk.create = async function(data) {
+      const now = Date.now();
+      const dataStr = JSON.stringify(data);
       
-      const formId = e.target.id || formName;
-      
-      // Prevent double submission
-      if (!preventDoubleSubmit(formId)) {
-        console.warn('⚠️ Duplicate submission prevented for:', formId);
-        return;
+      // Check if this is a duplicate call within 1 second with same data
+      if (lastCreateCall.data === dataStr && (now - lastCreateCall.timestamp) < 1000) {
+        console.warn('🚫 DUPLICATE CREATE BLOCKED:', data.type);
+        return { isOk: false, error: 'Duplicate creation prevented' };
       }
       
-      try {
-        // Call original handler
-        await originalHandler.call(this, e);
-      } finally {
-        // Always allow resubmit after completion (success or error)
-        setTimeout(() => allowFormResubmit(formId), 1000);
-      }
+      lastCreateCall = { data: dataStr, timestamp: now };
+      console.log('✅ Creating record:', data.type);
+      return await originalCreate.call(this, data);
     };
+    console.log('✅ SDK create() wrapped to prevent duplicates');
   }
   
   /**
-   * Override LR submission handlers
+   * Add validation before form submission
    */
   window.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-      // Wrap Booking LR submit
+      
+      // Daily Register Form - Add duplicate check
+      const dailyRegisterForm = document.getElementById('dailyRegisterForm');
+      if (dailyRegisterForm) {
+        dailyRegisterForm.addEventListener('submit', function(e) {
+          const formId = 'dailyRegisterForm';
+          if (!preventDoubleSubmit(formId)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            console.warn('🚫 Daily Register: Double submit prevented');
+            return false;
+          }
+        }, true); // Use capture phase to run BEFORE other handlers
+        console.log('✅ Daily Register form: Duplicate prevention active');
+      }
+      
+      // Booking LR Form - Add LR number check
       const lrForm = document.getElementById('lrForm');
-      if (lrForm && window.handleLRSubmit) {
-        const originalLRSubmit = window.handleLRSubmit;
-        window.handleLRSubmit = async function(e) {
-          e.preventDefault();
+      if (lrForm) {
+        lrForm.addEventListener('submit', function(e) {
+          const formId = 'lrForm';
           
-          // Get LR number
+          // Check for double submit
+          if (!preventDoubleSubmit(formId)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            console.warn('🚫 Booking LR: Double submit prevented');
+            return false;
+          }
+          
+          // Check for duplicate LR number
           const formData = new FormData(e.target);
           const lrNumber = formData.get('lrNumber');
-          const isEditing = e.target.dataset.editingId;
+          const isEditing = window.editingLRId || e.target.dataset.editingId;
           
-          // Check for duplicate LR number (only for new LRs)
-          if (!isEditing && lrNumber) {
-            if (window.checkLRNumberExists(lrNumber)) {
-              alert(`⚠️ DUPLICATE LR NUMBER!\n\nLR Number "${lrNumber}" already exists in the system.\n\nPlease use a different LR number.`);
-              return;
-            }
+          if (!isEditing && lrNumber && window.checkLRNumberExists(lrNumber)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            alert(`⚠️ DUPLICATE LR NUMBER!\n\nLR Number "${lrNumber}" already exists.\n\nPlease use a different LR number.`);
+            submittingForms.delete(formId); // Allow retry
+            return false;
           }
-          
-          // Prevent double submission
-          if (!preventDoubleSubmit('lrForm')) {
-            return;
-          }
-          
-          try {
-            await originalLRSubmit.call(this, e);
-          } finally {
-            setTimeout(() => allowFormResubmit('lrForm'), 1000);
-          }
-        };
-        
-        // Re-attach the wrapped handler
-        lrForm.removeEventListener('submit', window.handleLRSubmit);
-        lrForm.addEventListener('submit', window.handleLRSubmit);
-        console.log('✅ Booking LR form protected from duplicates');
+        }, true);
+        console.log('✅ Booking LR form: Duplicate prevention active');
       }
       
-      // Wrap Non-Booking LR submit
+      // Non-Booking LR Form
       const nonBookingLRForm = document.getElementById('nonBookingLRForm');
-      if (nonBookingLRForm && window.handleNonBookingLRSubmit) {
-        const originalNonBookingSubmit = window.handleNonBookingLRSubmit;
-        window.handleNonBookingLRSubmit = async function(e) {
-          e.preventDefault();
+      if (nonBookingLRForm) {
+        nonBookingLRForm.addEventListener('submit', function(e) {
+          const formId = 'nonBookingLRForm';
           
-          // Get LR number
+          if (!preventDoubleSubmit(formId)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            console.warn('🚫 Non-Booking LR: Double submit prevented');
+            return false;
+          }
+          
           const formData = new FormData(e.target);
           const lrNumber = formData.get('lrNumber');
-          const isEditing = e.target.dataset.editingId;
+          const isEditing = window.editingNonBookingLRId || e.target.dataset.editingId;
           
-          // Check for duplicate LR number (only for new LRs)
-          if (!isEditing && lrNumber) {
-            if (window.checkLRNumberExists(lrNumber)) {
-              alert(`⚠️ DUPLICATE LR NUMBER!\n\nLR Number "${lrNumber}" already exists in the system.\n\nPlease use a different LR number.`);
-              return;
-            }
+          if (!isEditing && lrNumber && window.checkLRNumberExists(lrNumber)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            alert(`⚠️ DUPLICATE LR NUMBER!\n\nLR Number "${lrNumber}" already exists.\n\nPlease use a different LR number.`);
+            submittingForms.delete(formId);
+            return false;
           }
-          
-          // Prevent double submission
-          if (!preventDoubleSubmit('nonBookingLRForm')) {
-            return;
-          }
-          
-          try {
-            await originalNonBookingSubmit.call(this, e);
-          } finally {
-            setTimeout(() => allowFormResubmit('nonBookingLRForm'), 1000);
-          }
-        };
-        
-        // Re-attach the wrapped handler
-        nonBookingLRForm.removeEventListener('submit', window.handleNonBookingLRSubmit);
-        nonBookingLRForm.addEventListener('submit', window.handleNonBookingLRSubmit);
-        console.log('✅ Non-Booking LR form protected from duplicates');
+        }, true);
+        console.log('✅ Non-Booking LR form: Duplicate prevention active');
       }
       
-      // Wrap Challan submit
-      const challanForm = document.getElementById('challanForm');
-      if (challanForm && window.handleChallanBookSubmit) {
-        const originalChallanSubmit = window.handleChallanBookSubmit;
-        window.handleChallanBookSubmit = async function(e) {
-          e.preventDefault();
+      // Challan Form
+      const challanForm = document.getElementById('challanBookForm');
+      if (challanForm) {
+        challanForm.addEventListener('submit', function(e) {
+          const formId = 'challanBookForm';
           
-          // Get challan number
+          if (!preventDoubleSubmit(formId)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            console.warn('🚫 Challan: Double submit prevented');
+            return false;
+          }
+          
           const formData = new FormData(e.target);
           const challanNumber = formData.get('challanNumber');
-          const isEditing = e.target.dataset.editingId;
+          const isEditing = window.editingChallanId || e.target.dataset.editingId;
           
-          // Check for duplicate challan number (only for new challans)
-          if (!isEditing && challanNumber) {
-            if (window.checkChallanNumberExists(challanNumber)) {
-              alert(`⚠️ DUPLICATE CHALLAN NUMBER!\n\nChallan Number "${challanNumber}" already exists in the system.\n\nPlease use a different challan number.`);
-              return;
-            }
+          if (!isEditing && challanNumber && window.checkChallanNumberExists(challanNumber)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            alert(`⚠️ DUPLICATE CHALLAN NUMBER!\n\nChallan Number "${challanNumber}" already exists.\n\nPlease use a different challan number.`);
+            submittingForms.delete(formId);
+            return false;
           }
-          
-          // Prevent double submission
-          if (!preventDoubleSubmit('challanForm')) {
-            return;
-          }
-          
-          try {
-            await originalChallanSubmit.call(this, e);
-          } finally {
-            setTimeout(() => allowFormResubmit('challanForm'), 1000);
-          }
-        };
-        
-        // Re-attach the wrapped handler
-        challanForm.removeEventListener('submit', window.handleChallanBookSubmit);
-        challanForm.addEventListener('submit', window.handleChallanBookSubmit);
-        console.log('✅ Challan form protected from duplicates');
+        }, true);
+        console.log('✅ Challan form: Duplicate prevention active');
       }
       
-      // Wrap Billing submit
+      // Billing Form
       const billingForm = document.getElementById('billingForm');
-      if (billingForm && window.handleBillingSubmit) {
-        const originalBillingSubmit = window.handleBillingSubmit;
-        window.handleBillingSubmit = async function(e) {
-          e.preventDefault();
+      if (billingForm) {
+        billingForm.addEventListener('submit', function(e) {
+          const formId = 'billingForm';
           
-          // Get bill number
+          if (!preventDoubleSubmit(formId)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            console.warn('🚫 Billing: Double submit prevented');
+            return false;
+          }
+          
           const formData = new FormData(e.target);
           const billNumber = formData.get('billNumber');
           
-          // Check for duplicate bill number
-          if (billNumber) {
-            if (window.checkBillNumberExists(billNumber)) {
-              alert(`⚠️ DUPLICATE BILL NUMBER!\n\nBill Number "${billNumber}" already exists in the system.\n\nPlease use a different bill number.`);
-              return;
-            }
+          if (billNumber && window.checkBillNumberExists(billNumber)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            alert(`⚠️ DUPLICATE BILL NUMBER!\n\nBill Number "${billNumber}" already exists.\n\nPlease use a different bill number.`);
+            submittingForms.delete(formId);
+            return false;
           }
-          
-          // Prevent double submission
-          if (!preventDoubleSubmit('billingForm')) {
-            return;
-          }
-          
-          try {
-            await originalBillingSubmit.call(this, e);
-          } finally {
-            setTimeout(() => allowFormResubmit('billingForm'), 1000);
-          }
-        };
-        
-        // Re-attach the wrapped handler
-        billingForm.removeEventListener('submit', window.handleBillingSubmit);
-        billingForm.addEventListener('submit', window.handleBillingSubmit);
-        console.log('✅ Billing form protected from duplicates');
+        }, true);
+        console.log('✅ Billing form: Duplicate prevention active');
       }
       
-      // Wrap Daily Register submit
-      const dailyRegisterForm = document.getElementById('dailyRegisterForm');
-      if (dailyRegisterForm && window.handleDailyRegisterSubmit) {
-        const originalDailySubmit = window.handleDailyRegisterSubmit;
-        window.handleDailyRegisterSubmit = wrapFormHandler(originalDailySubmit, 'dailyRegisterForm');
-        
-        // Re-attach the wrapped handler
-        dailyRegisterForm.removeEventListener('submit', window.handleDailyRegisterSubmit);
-        dailyRegisterForm.addEventListener('submit', window.handleDailyRegisterSubmit);
-        console.log('✅ Daily Register form protected from duplicates');
-      }
-      
-    }, 2000); // Wait 2 seconds for everything to load
+    }, 1500); // Wait 1.5 seconds for main file to initialize
   });
   
   /**
@@ -346,8 +309,9 @@
    */
   window.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-      // Add duplicate check to LR number fields
-      addDuplicateCheckToField('lrNumber', window.checkLRNumberExists);
+      // Add duplicate check to LR number fields (try multiple possible IDs)
+      const lrFields = ['lrNumber', 'bookingLrNumber', 'nonBookingLrNumber'];
+      lrFields.forEach(id => addDuplicateCheckToField(id, window.checkLRNumberExists));
       
       // Add duplicate check to Challan number field
       addDuplicateCheckToField('challanNumber', window.checkChallanNumberExists);
@@ -360,7 +324,7 @@
   });
   
   /**
-   * Disable submit buttons during submission
+   * Disable submit buttons during submission (global)
    */
   document.addEventListener('submit', function(e) {
     if (e.target.tagName === 'FORM') {
@@ -368,17 +332,23 @@
       if (submitBtn && !submitBtn.disabled) {
         const originalText = submitBtn.innerHTML;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="loading-spinner inline-block mr-2"></span>Submitting...';
         
-        // Re-enable after 3 seconds (fallback)
+        // Add loading indicator if not present
+        if (!originalText.includes('loading-spinner')) {
+          submitBtn.innerHTML = '<span class="loading-spinner inline-block mr-2">⏳</span>Submitting...';
+        }
+        
+        // Re-enable after 5 seconds (fallback)
         setTimeout(() => {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalText;
-        }, 3000);
+          if (submitBtn.disabled) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        }, 5000);
       }
     }
-  }, true);
+  }, true); // Use capture to run early
   
-  console.log('✅ Duplication prevention module loaded successfully!');
+  console.log('✅ Duplication prevention module loaded successfully! (CORRECTED)');
   
 })();
