@@ -896,6 +896,26 @@
         }
       } else {
         // CREATE new entry
+        // DUPLICATE PREVENTION CHECK
+        const potentialDuplicate = allRecords.find(r => 
+          r.type === 'daily_register' &&
+          r.date === formData.get('date') &&
+          r.truckNumber === formData.get('truckNumber') &&
+          r.from === formData.get('from') &&
+          Math.abs(Date.now() - new Date(r.createdAt).getTime()) < 5000
+        );
+        
+        if (potentialDuplicate) {
+          console.log('⚠️ Duplicate entry detected, skipping creation');
+          showInlineMessage('Entry already exists or was just created.', 'warning');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+          }
+          return;
+        }
+        // END OF DUPLICATE CHECK
+      
         const data = {
           type: 'daily_register',
           date: formData.get('date'),
@@ -1396,82 +1416,87 @@
       }
     }
 
-    function handleDailyForChallanSelect(e) {
-      const entryId = e.target.value;
-      if (!entryId) {
-        const form = document.getElementById('challanBookForm');
-        form.reset();
-        // Hide LR numbers display
-        document.getElementById('challanLRNumbersDisplay').style.display = 'none';
-        return;
-      }
-
-      const entry = allRecords.find(r => r.__backendId === entryId);
-      if (entry) {
-        const form = document.getElementById('challanBookForm');
-        const commissionField = document.getElementById('challanCommission');
-        const ratePerTonneField = document.getElementById('challanRatePerTonne');
-        
-        form.truckNumber.value = entry.truckNumber || '';
-        form.date.value = entry.date || '';
-        form.from.value = entry.from || '';
-        form.to.value = entry.to || '';
-        form.dailyEntryId.value = entryId;
-        
-        // Find and display all linked LR numbers
-        const linkedLRs = allRecords.filter(r => 
-          (r.type === 'booking_lr' || r.type === 'non_booking_lr') && 
-          (r.dailyEntryId === entryId || r.dailyRegisterId === entryId)
-        );
-        
-        const lrNumbersDisplay = document.getElementById('challanLRNumbers');
-        const lrNumbersContainer = document.getElementById('challanLRNumbersDisplay');
-        
-        if (linkedLRs.length > 0) {
-          const lrNumbers = linkedLRs.map(lr => lr.lrNumber).filter(Boolean).join(', ');
-          lrNumbersDisplay.innerHTML = `${lrNumbers} <span style="color: #059669; font-size: 0.875rem;">(${linkedLRs.length} LR${linkedLRs.length > 1 ? 's' : ''})</span>`;
-          lrNumbersContainer.style.display = 'block';
-        } else {
-          lrNumbersDisplay.innerHTML = '<span style="color: #9ca3af;">No LRs linked to this Daily Register entry</span>';
-          lrNumbersContainer.style.display = 'block';
-        }
-        
-        // Auto-fill Rate per Tonne from Daily Register truck rate
-        if (entry.truckRate) {
-          ratePerTonneField.value = entry.truckRate;
-          ratePerTonneField.classList.add('bg-yellow-50');
-          ratePerTonneField.placeholder = 'Auto-filled from Daily Register';
-          // Trigger calculation after auto-filling rate
-          calculateChallanTotal();
-        }
-        
-        // Commission logic: Only editable if pending in daily register
-        if (entry.commissionApplicable && entry.commissionStatus === 'Pending') {
-          // Commission is pending - allow manual entry on challan
-          commissionField.value = entry.commission || 0;
-          commissionField.readOnly = false;
-          commissionField.classList.remove('bg-gray-50');
-          commissionField.placeholder = 'Enter commission amount';
-        } else if (entry.commissionApplicable && entry.commissionStatus === 'Paid') {
-          // Commission already paid - don't flow to challan
-          commissionField.value = 0;
-          commissionField.readOnly = true;
-          commissionField.classList.add('bg-gray-50');
-          commissionField.placeholder = 'Commission already paid in Daily Register';
-        } else {
-          // No commission applicable
-          commissionField.value = 0;
-          commissionField.readOnly = true;
-          commissionField.classList.add('bg-gray-50');
-          commissionField.placeholder = 'No commission';
-        }
-      }
+   function handleDailyForChallanSelect(e) {
+  const entryId = e.target.value;
+  if (!entryId) {
+    const linkedLRsList = document.getElementById('linkedLRsList');
+    if (linkedLRsList) {
+      linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No daily entry selected</p>';
     }
+    return;
+  }
+  
+  const entry = allRecords.find(r => r.__backendId === entryId);
+  if (!entry) return;
+  
+  // Auto-fill form fields
+  const form = document.getElementById('challanBookForm');
+  if (form) {
+    form.truckNumber.value = entry.truckNumber || '';
+    form.from.value = entry.from || '';
+    
+    if (entry.companies && entry.companies.length > 0) {
+      form.to.value = entry.companies[0].location || '';
+    } else {
+      form.to.value = entry.to || '';
+    }
+  }
+  
+  // Find all LRs linked to this daily entry
+  const linkedLRs = allRecords.filter(r => 
+    (r.type === 'booking_lr' || r.type === 'non_booking_lr') && 
+    r.dailyEntryId === entryId
+  );
+  
+  // Display linked LRs as selectable checkboxes
+  const linkedLRsList = document.getElementById('linkedLRsList');
+  
+  if (!linkedLRsList) return;
+  
+  if (linkedLRs.length === 0) {
+    linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No LRs found for this entry</p>';
+  } else {
+    linkedLRsList.innerHTML = `
+      <div class="space-y-2">
+        <p class="text-sm font-semibold text-gray-700 mb-2">Select LR Numbers to link with this Challan:</p>
+        ${linkedLRs.map((lr, index) => `
+          <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer">
+            <input 
+              type="checkbox" 
+              name="selectedLRs" 
+              value="${lr.lrNumber}" 
+              class="w-4 h-4 text-blue-600"
+              onchange="updateChallanLinkedLRs()"
+            >
+            <span class="text-sm">
+              <strong>${lr.lrNumber}</strong> - ${lr.consignorName || 'N/A'} → ${lr.consigneeName || 'N/A'} 
+              (${lr.weight || 0}T, ₹${lr.companyRate || 0})
+            </span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  const linkedLRInput = document.getElementById('challanLinkedLRs');
+  if (linkedLRInput) {
+    linkedLRInput.value = '';
+  }
+} 
 
     async function handleBillingSubmit(e) {
       e.preventDefault();
       const formData = new FormData(e.target);
-      
+      // Update linked LR numbers based on checkbox selection
+function updateChallanLinkedLRs() {
+  const checkboxes = document.querySelectorAll('input[name="selectedLRs"]:checked');
+  const selectedLRs = Array.from(checkboxes).map(cb => cb.value);
+  
+  const linkedLRInput = document.getElementById('challanLinkedLRs');
+  if (linkedLRInput) {
+    linkedLRInput.value = selectedLRs.join(', ');
+  }
+}
       // Get all selected LR IDs
       const lrIds = formData.getAll('lrId[]');
       
@@ -1902,46 +1927,45 @@
       }
     }
 
-    function populateDailyEntrySelect() {
-      const select = document.getElementById('selectDailyEntry');
-      // Get daily register entries that are:
-      // 1. Type of booking is "Booking"
-      // 2. Either status is 'Pending' OR there are no LRs linked to this entry
-      const entries = allRecords.filter(r => {
-        if (r.type !== 'daily_register' || r.typeOfBooking !== 'Booking') return false;
-        
-        // Check if there's any booking LR linked to this entry
-        const hasLinkedLR = allRecords.some(lr => {
-          if (lr.type !== 'booking_lr') return false;
-          
-          // Check by dailyEntryId
-          if (lr.dailyEntryId === r.__backendId) return true;
-          
-          // Check by truck number and date match
-          if (lr.truckNumber && r.truckNumber && 
-              lr.truckNumber.toLowerCase() === r.truckNumber.toLowerCase()) {
-            if (lr.lrDate && r.date) {
-              const lrDate = new Date(lr.lrDate).toDateString();
-              const entryDate = new Date(r.date).toDateString();
-              if (lrDate === entryDate) return true;
-            }
-          }
-          
-          return false;
-        });
-        
-        // Show if no LR is linked (even if status was changed previously)
-        return !hasLinkedLR;
-      });
-      
-      select.innerHTML = '<option value="">-- Select a daily register entry --</option>';
-      entries.forEach(entry => {
-        const option = document.createElement('option');
-        option.value = entry.__backendId;
-        option.textContent = `${entry.date} - ${entry.truckNumber} - ${entry.companyName} (${entry.from} → ${entry.to}) - ${entry.bookingType}`;
-        select.appendChild(option);
-      });
+function populateDailyEntrySelect() {
+  const select = document.getElementById('selectDailyEntry');
+  const entries = allRecords.filter(r => {
+    if (r.type !== 'daily_register' || r.typeOfBooking !== 'Booking') return false;
+    
+    const hasLinkedLR = allRecords.some(lr => {
+      if (lr.type !== 'booking_lr') return false;
+      if (lr.dailyEntryId === r.__backendId) return true;
+      if (lr.truckNumber && r.truckNumber && 
+          lr.truckNumber.toLowerCase() === r.truckNumber.toLowerCase()) {
+        if (lr.lrDate && r.date) {
+          const lrDate = new Date(lr.lrDate).toDateString();
+          const entryDate = new Date(r.date).toDateString();
+          if (lrDate === entryDate) return true;
+        }
+      }
+      return false;
+    });
+    
+    return !hasLinkedLR;
+  });
+  
+  select.innerHTML = '<option value="">-- Select a daily register entry --</option>';
+  entries.forEach(entry => {
+    const option = document.createElement('option');
+    option.value = entry.__backendId;
+    
+    // Enhanced display: Show multiple companies if available
+    if (entry.companies && entry.companies.length > 1) {
+      const companyNames = entry.companies.map(c => c.name).join(', ');
+      const destinations = entry.companies.map(c => c.location).join(', ');
+      option.textContent = `${entry.date} - ${entry.truckNumber} - ${companyNames} (${entry.from} → ${destinations}) - ${entry.bookingType}`;
+    } else {
+      option.textContent = `${entry.date} - ${entry.truckNumber} - ${entry.companyName || 'N/A'} (${entry.from} → ${entry.to || 'N/A'}) - ${entry.bookingType}`;
     }
+    
+    select.appendChild(option);
+  });
+}
 
     function populateDailyEntryNonBookingSelect() {
       const select = document.getElementById('selectDailyEntryNonBooking');
@@ -1998,44 +2022,26 @@
     }
 
     function populateDailyForChallanSelect() {
-      const select = document.getElementById('selectDailyForChallan');
-      // Get daily register entries that don't have challans linked to them
-      const entries = allRecords.filter(r => {
-        if (r.type !== 'daily_register') return false;
-        
-        // Check if there's any challan linked to this entry
-        const hasLinkedChallan = allRecords.some(challan => {
-          if (challan.type !== 'challan_book') return false;
-          
-          // Check by dailyEntryId
-          if (challan.dailyEntryId === r.__backendId) return true;
-          
-          // Check by truck number and date match
-          if (challan.truckNumber && r.truckNumber && 
-              challan.truckNumber.toLowerCase() === r.truckNumber.toLowerCase()) {
-            if (challan.date && r.date) {
-              const challanDate = new Date(challan.date).toDateString();
-              const entryDate = new Date(r.date).toDateString();
-              if (challanDate === entryDate) return true;
-            }
-          }
-          
-          return false;
-        });
-        
-        // Show if no challan is linked (even if status was changed previously)
-        return !hasLinkedChallan;
-      });
-      
-      select.innerHTML = '<option value="">-- Select a daily register entry --</option>';
-      entries.forEach(entry => {
-        const option = document.createElement('option');
-        option.value = entry.__backendId;
-        option.textContent = `${entry.date} - ${entry.truckNumber} - ${entry.companyName} (${entry.from} → ${entry.to})`;
-        select.appendChild(option);
-      });
+  const select = document.getElementById('selectDailyForChallan');
+  
+  const entries = allRecords.filter(r => r.type === 'daily_register');
+  
+  select.innerHTML = '<option value="">-- Select a daily register entry --</option>';
+  entries.forEach(entry => {
+    const option = document.createElement('option');
+    option.value = entry.__backendId;
+    
+    // Enhanced display for multiple companies
+    if (entry.companies && entry.companies.length > 1) {
+      const companyNames = entry.companies.map(c => c.name).join(', ');
+      option.textContent = `${entry.date} - ${entry.truckNumber} - ${companyNames} (${entry.from} → ${entry.bookingType})`;
+    } else {
+      option.textContent = `${entry.date} - ${entry.truckNumber} - ${entry.companyName || 'N/A'} (${entry.from} → ${entry.bookingType})`;
     }
-
+    
+    select.appendChild(option);
+  });
+}
     function populateLRSelect() {
       const select = document.getElementById('selectLR');
       const lrs = allRecords.filter(r => 
@@ -7925,6 +7931,677 @@ function numberToWords(num) {
         }
       });
     }
+// ============================================================================
+// ENHANCED DAILY REGISTER - JavaScript Additions
+// Add this code to the END of your dashboard-main.js file
+// ============================================================================
+
+// Global variables for enhanced daily register
+let companyIndexCounter = 1;
+let deliveryCityCounter = 1;
+
+// ============================================================================
+// INITIALIZATION FUNCTIONS
+// ============================================================================
+
+// Initialize enhanced daily register - call this in your main initialization
+function initializeEnhancedDailyRegister() {
+  console.log('Initializing Enhanced Daily Register...');
+  
+  // Delivery Type Selection
+  const deliveryTypeSelect = document.getElementById('deliveryTypeSelect');
+  if (deliveryTypeSelect) {
+    deliveryTypeSelect.addEventListener('change', handleDeliveryTypeChange);
+  }
+  
+  // Commission checkbox - update the existing listener
+  const commissionCheckbox = document.getElementById('commissionApplicable');
+  if (commissionCheckbox) {
+    // Remove old listener and add new one
+    const newCheckbox = commissionCheckbox.cloneNode(true);
+    commissionCheckbox.parentNode.replaceChild(newCheckbox, commissionCheckbox);
+    newCheckbox.addEventListener('change', handleCommissionToggleEnhanced);
+  }
+  
+  // Populate company selects for the first entry
+  populateCompanySelects();
+  
+  console.log('Enhanced Daily Register initialized');
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+// Handle delivery type change
+function handleDeliveryTypeChange(e) {
+  const deliveryType = e.target.value;
+  const additionalSection = document.getElementById('additionalDeliveriesSection');
+  
+  if (deliveryType === 'multiple') {
+    additionalSection.classList.remove('hidden');
+  } else {
+    additionalSection.classList.add('hidden');
+    // Clear all delivery cities when switching to single
+    document.getElementById('deliveryCitiesList').innerHTML = '';
+    deliveryCityCounter = 1;
+  }
+}
+
+// Handle commission toggle - enhanced version
+function handleCommissionToggleEnhanced(e) {
+  const commissionFields = document.getElementById('commissionFields');
+  
+  if (e.target.checked) {
+    commissionFields.classList.remove('hidden');
+  } else {
+    commissionFields.classList.add('hidden');
+    // Reset commission fields
+    const commissionInput = commissionFields.querySelector('input[name="commission"]');
+    if (commissionInput) commissionInput.value = '0';
+  }
+}
+
+// ============================================================================
+// DELIVERY CITY FUNCTIONS
+// ============================================================================
+
+// Add a new delivery city
+function addDeliveryCity() {
+  const deliveryCitiesList = document.getElementById('deliveryCitiesList');
+  const cityIndex = deliveryCityCounter++;
+  
+  const cityDiv = document.createElement('div');
+  cityDiv.className = 'delivery-city-item';
+  cityDiv.setAttribute('data-city-index', cityIndex);
+  cityDiv.innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="flex-1">
+        <label class="block text-xs font-medium text-gray-700 mb-1">Delivery City #${cityIndex}</label>
+        <input 
+          type="text" 
+          name="deliveryCities[${cityIndex}]" 
+          required 
+          class="input-field w-full" 
+          placeholder="Enter city name"
+        >
+      </div>
+      <button 
+        type="button" 
+        onclick="removeDeliveryCity(${cityIndex})" 
+        class="mt-5 bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm"
+      >
+        ✖️ Remove
+      </button>
+    </div>
+  `;
+  
+  deliveryCitiesList.appendChild(cityDiv);
+}
+
+// Remove a delivery city
+function removeDeliveryCity(cityIndex) {
+  const cityDiv = document.querySelector(`[data-city-index="${cityIndex}"]`);
+  if (cityDiv) {
+    cityDiv.remove();
+  }
+}
+
+// ============================================================================
+// COMPANY ENTRY FUNCTIONS
+// ============================================================================
+
+// Add a new company entry
+function addCompanyEntry() {
+  const companiesContainer = document.getElementById('companiesContainer');
+  const companyIndex = companyIndexCounter++;
+  
+  const companyDiv = document.createElement('div');
+  companyDiv.className = 'company-item';
+  companyDiv.setAttribute('data-company-index', companyIndex);
+  companyDiv.innerHTML = `
+    <button 
+      type="button" 
+      onclick="removeCompanyEntry(${companyIndex})" 
+      class="remove-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+    >
+      ✖️ Remove
+    </button>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+        <select name="companies[${companyIndex}][name]" required class="input-field w-full company-select" data-index="${companyIndex}">
+          <option value="">Select Company</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+        <input 
+          type="number" 
+          name="companies[${companyIndex}][rate]" 
+          required 
+          class="input-field w-full" 
+          placeholder="0" 
+          step="0.01"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Destination City *</label>
+        <input 
+          type="text" 
+          name="companies[${companyIndex}][location]" 
+          required 
+          class="input-field w-full" 
+          placeholder="Delivery City"
+        >
+      </div>
+    </div>
+  `;
+  
+  companiesContainer.appendChild(companyDiv);
+  
+  // Populate the new company select
+  populateCompanySelect(companyIndex);
+}
+
+// Remove a company entry
+function removeCompanyEntry(companyIndex) {
+  const companyDiv = document.querySelector(`[data-company-index="${companyIndex}"]`);
+  if (companyDiv) {
+    companyDiv.remove();
+  }
+}
+
+// Populate all company selects
+function populateCompanySelects() {
+  const companySelects = document.querySelectorAll('.company-select');
+  companySelects.forEach(select => {
+    const index = select.getAttribute('data-index');
+    populateCompanySelect(index);
+  });
+}
+
+// Populate a specific company select
+function populateCompanySelect(index) {
+  const select = document.querySelector(`.company-select[data-index="${index}"]`);
+  if (!select) return;
+  
+  // Get companies from allRecords (assuming it's available globally)
+  const companies = allRecords.filter(r => r.type === 'company_master');
+  
+  // Clear existing options except the first one
+  select.innerHTML = '<option value="">Select Company</option>';
+  
+  // Add company options
+  companies.forEach(company => {
+    const option = document.createElement('option');
+    option.value = company.companyName;
+    option.textContent = company.companyName;
+    select.appendChild(option);
+  });
+}
+
+// ============================================================================
+// FORM SUBMISSION - ENHANCED VERSION
+// ============================================================================
+
+// Store the original function if it exists
+const originalHandleDailyRegisterSubmit = window.handleDailyRegisterSubmit;
+
+// Enhanced daily register form submission
+async function handleDailyRegisterSubmit(e) {
+  e.preventDefault();
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const isEditing = window.editingDailyRegisterId;
+  
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="loading-spinner inline-block mr-2"></span>${isEditing ? 'Updating...' : 'Saving...'}`;
+  }
+  
+  const formData = new FormData(e.target);
+  
+  // Collect companies data
+  const companies = [];
+  const companyDivs = document.querySelectorAll('#companiesContainer .company-item');
+  
+  companyDivs.forEach((div, idx) => {
+    const companyIndex = div.getAttribute('data-company-index') || idx;
+    const name = formData.get(`companies[${companyIndex}][name]`);
+    const rate = formData.get(`companies[${companyIndex}][rate]`);
+    const location = formData.get(`companies[${companyIndex}][location]`);
+    
+    if (name && rate && location) {
+      companies.push({
+        name: name,
+        rate: parseFloat(rate) || 0,
+        location: location
+      });
+    }
+  });
+  
+  // Validate at least one company
+  if (companies.length === 0) {
+    alert('Please add at least one company with rate and destination.');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+    }
+    return;
+  }
+  
+  // Collect delivery cities (if multiple delivery)
+  const deliveryType = formData.get('deliveryType');
+  const deliveryCities = [];
+  
+  if (deliveryType === 'multiple') {
+    const cityInputs = document.querySelectorAll('#deliveryCitiesList input[name^="deliveryCities"]');
+    cityInputs.forEach(input => {
+      if (input.value.trim()) {
+        deliveryCities.push(input.value.trim());
+      }
+    });
+  }
+  
+  // Commission data
+  const commissionApplicable = formData.get('commissionApplicable') === 'on';
+  const commissionAmount = commissionApplicable ? (parseFloat(formData.get('commission')) || 0) : 0;
+  
+  // Calculate total company rate (sum of all company rates)
+  const totalCompanyRate = companies.reduce((sum, company) => sum + company.rate, 0);
+  
+  let result;
+  
+  if (isEditing) {
+    // UPDATE existing entry
+    const existingEntry = allRecords.find(r => r.__backendId === isEditing);
+    if (existingEntry) {
+      const data = { ...existingEntry };
+      
+      // Update basic fields
+      data.date = formData.get('date');
+      data.truckNumber = formData.get('truckNumber');
+      data.truckSize = formData.get('truckSize');
+      data.partyName = formData.get('partyName') || '';
+      data.from = formData.get('from');
+      data.bookingType = formData.get('bookingType');
+      data.typeOfBooking = formData.get('typeOfBooking');
+      data.placedBy = formData.get('placedBy');
+      data.truckRate = parseFloat(formData.get('truckRate')) || 0;
+      
+      // Update new fields
+      data.deliveryType = deliveryType;
+      data.deliveryCities = deliveryCities;
+      data.companies = companies;
+      data.companyRate = totalCompanyRate;
+      
+      // Use first company's name and location for backward compatibility
+      if (companies.length > 0) {
+        data.companyName = companies[0].name;
+        data.to = companies[0].location;
+      }
+      
+      // Update commission
+      data.commissionApplicable = commissionApplicable;
+      data.commission = commissionAmount;
+      data.commissionTakenBy = formData.get('commissionTakenBy') || '';
+      data.commissionStatus = formData.get('commissionStatus') || 'Paid';
+      data.notes = formData.get('notes') || '';
+      data.updatedAt = new Date().toISOString();
+      
+      result = await window.dataSdk.update(data);
+    } else {
+      result = { isOk: false };
+    }
+  } else {
+    // CREATE new entry
+    const data = {
+      type: 'daily_register',
+      date: formData.get('date'),
+      truckNumber: formData.get('truckNumber'),
+      truckSize: formData.get('truckSize'),
+      partyName: formData.get('partyName') || '',
+      from: formData.get('from'),
+      bookingType: formData.get('bookingType'),
+      typeOfBooking: formData.get('typeOfBooking'),
+      placedBy: formData.get('placedBy'),
+      truckRate: parseFloat(formData.get('truckRate')) || 0,
+      deliveryType: deliveryType,
+      deliveryCities: deliveryCities,
+      companies: companies,
+      companyRate: totalCompanyRate,
+      commissionApplicable: commissionApplicable,
+      commission: commissionAmount,
+      commissionTakenBy: formData.get('commissionTakenBy') || '',
+      commissionStatus: formData.get('commissionStatus') || 'Paid',
+      notes: formData.get('notes') || '',
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      __backendId: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    };
+    
+    // For backward compatibility
+    if (companies.length > 0) {
+      data.companyName = companies[0].name;
+      data.to = companies[0].location;
+    }
+    
+    result = await window.dataSdk.create(data);
+  }
+  
+  // Handle result
+  if (result.isOk) {
+    showInlineMessage(
+      isEditing ? '✅ Entry updated successfully!' : '✅ Entry added successfully!',
+      'success'
+    );
+    
+    // Reset form
+    e.target.reset();
+    resetFormToAddMode();
+    
+    // Reset company counter and clear additional companies
+    companyIndexCounter = 1;
+    const companiesContainer = document.getElementById('companiesContainer');
+    const companyItems = companiesContainer.querySelectorAll('.company-item:not(.first-company)');
+    companyItems.forEach(item => item.remove());
+    
+    // Repopulate first company select
+    populateCompanySelects();
+    
+    // Reset delivery cities
+    deliveryCityCounter = 1;
+    document.getElementById('deliveryCitiesList').innerHTML = '';
+    document.getElementById('additionalDeliveriesSection').classList.add('hidden');
+    
+    // Hide commission fields
+    document.getElementById('commissionFields').classList.add('hidden');
+  } else {
+    showInlineMessage('❌ Failed to save entry. Please try again.', 'error');
+  }
+  
+  // Re-enable submit button
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+  }
+}
+
+// ============================================================================
+// FORM RESET AND EDIT FUNCTIONS
+// ============================================================================
+
+// Reset form to add mode after editing
+function resetFormToAddMode() {
+  window.editingDailyRegisterId = null;
+  
+  const form = document.getElementById('dailyRegisterForm');
+  if (!form) return;
+  
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>Add Entry</span></span>';
+    submitBtn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+    submitBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+  }
+  
+  const resetBtn = form.querySelector('button[type="reset"]');
+  if (resetBtn) {
+    resetBtn.textContent = 'Clear';
+    resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'text-white');
+    resetBtn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+  }
+}
+
+// Edit daily register with enhanced fields
+function editDailyRegister(id) {
+  const entry = allRecords.find(r => r.__backendId === id);
+  if (!entry) {
+    alert('Entry not found!');
+    return;
+  }
+  
+  // Show the form section
+  const formSection = document.getElementById('dailyRegisterFormSection');
+  if (formSection && formSection.classList.contains('hidden')) {
+    formSection.classList.remove('hidden');
+    const toggleBtn = document.getElementById('toggleDailyFormBtn');
+    if (toggleBtn) {
+      toggleBtn.textContent = '✖️ Cancel';
+      toggleBtn.classList.remove('btn-primary');
+      toggleBtn.classList.add('btn-secondary');
+    }
+  }
+  
+  window.editingDailyRegisterId = id;
+  
+  const form = document.getElementById('dailyRegisterForm');
+  if (!form) return;
+  
+  // Populate basic fields
+  form.querySelector('[name="date"]').value = entry.date || '';
+  form.querySelector('[name="truckNumber"]').value = entry.truckNumber || '';
+  form.querySelector('[name="truckSize"]').value = entry.truckSize || '';
+  form.querySelector('[name="partyName"]').value = entry.partyName || '';
+  form.querySelector('[name="from"]').value = entry.from || '';
+  form.querySelector('[name="bookingType"]').value = entry.bookingType || '';
+  form.querySelector('[name="typeOfBooking"]').value = entry.typeOfBooking || '';
+  form.querySelector('[name="placedBy"]').value = entry.placedBy || '';
+  form.querySelector('[name="truckRate"]').value = entry.truckRate || '';
+  
+  // Populate delivery type
+  const deliveryTypeSelect = document.getElementById('deliveryTypeSelect');
+  if (deliveryTypeSelect) {
+    deliveryTypeSelect.value = entry.deliveryType || 'single';
+    deliveryTypeSelect.dispatchEvent(new Event('change'));
+  }
+  
+  // Populate delivery cities
+  if (entry.deliveryType === 'multiple' && entry.deliveryCities && entry.deliveryCities.length > 0) {
+    const deliveryCitiesList = document.getElementById('deliveryCitiesList');
+    deliveryCitiesList.innerHTML = '';
+    
+    entry.deliveryCities.forEach((city, idx) => {
+      const cityIndex = idx + 1;
+      const cityDiv = document.createElement('div');
+      cityDiv.className = 'delivery-city-item';
+      cityDiv.setAttribute('data-city-index', cityIndex);
+      cityDiv.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Delivery City #${cityIndex}</label>
+            <input 
+              type="text" 
+              name="deliveryCities[${cityIndex}]" 
+              required 
+              class="input-field w-full" 
+              placeholder="Enter city name"
+              value="${city}"
+            >
+          </div>
+          <button 
+            type="button" 
+            onclick="removeDeliveryCity(${cityIndex})" 
+            class="mt-5 bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm"
+          >
+            ✖️ Remove
+          </button>
+        </div>
+      `;
+      deliveryCitiesList.appendChild(cityDiv);
+    });
+    
+    deliveryCityCounter = entry.deliveryCities.length + 1;
+  }
+  
+  // Populate companies
+  const companiesContainer = document.getElementById('companiesContainer');
+  companiesContainer.innerHTML = '';
+  
+  const companiesToPopulate = entry.companies && entry.companies.length > 0 
+    ? entry.companies 
+    : [{name: entry.companyName || '', rate: entry.companyRate || 0, location: entry.to || ''}];
+  
+  companiesToPopulate.forEach((company, idx) => {
+    const isFirst = idx === 0;
+    const companyDiv = document.createElement('div');
+    companyDiv.className = `company-item ${isFirst ? 'first-company' : ''}`;
+    companyDiv.setAttribute('data-company-index', idx);
+    companyDiv.innerHTML = `
+      ${!isFirst ? `
+      <button 
+        type="button" 
+        onclick="removeCompanyEntry(${idx})" 
+        class="remove-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+      >
+        ✖️ Remove
+      </button>` : ''}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+          <select name="companies[${idx}][name]" required class="input-field w-full company-select" data-index="${idx}">
+            <option value="">Select Company</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+          <input 
+            type="number" 
+            name="companies[${idx}][rate]" 
+            required 
+            class="input-field w-full" 
+            placeholder="0" 
+            step="0.01"
+            value="${company.rate || 0}"
+          >
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Destination City *</label>
+          <input 
+            type="text" 
+            name="companies[${idx}][location]" 
+            required 
+            class="input-field w-full" 
+            placeholder="Delivery City"
+            value="${company.location || ''}"
+          >
+        </div>
+      </div>
+    `;
+    companiesContainer.appendChild(companyDiv);
+    
+    // Populate company select and set value
+    populateCompanySelect(idx);
+    setTimeout(() => {
+      const select = document.querySelector(`.company-select[data-index="${idx}"]`);
+      if (select) {
+        select.value = company.name || '';
+      }
+    }, 100);
+  });
+  
+  companyIndexCounter = companiesToPopulate.length;
+  
+  // Populate commission
+  const commissionCheckbox = document.getElementById('commissionApplicable');
+  if (entry.commission && entry.commission > 0) {
+    commissionCheckbox.checked = true;
+    commissionCheckbox.dispatchEvent(new Event('change'));
+    
+    form.querySelector('[name="commission"]').value = entry.commission || '';
+    form.querySelector('[name="commissionTakenBy"]').value = entry.commissionTakenBy || '';
+    form.querySelector('[name="commissionStatus"]').value = entry.commissionStatus || 'Paid';
+  } else {
+    commissionCheckbox.checked = false;
+    commissionCheckbox.dispatchEvent(new Event('change'));
+  }
+  
+  form.querySelector('[name="notes"]').value = entry.notes || '';
+  
+  // Change submit button
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span class="flex items-center gap-2"><span>✏️ Update Entry</span></span>';
+    submitBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    submitBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+  }
+  
+  // Change clear button to cancel
+  const resetBtn = form.querySelector('button[type="reset"]');
+  if (resetBtn) {
+    resetBtn.textContent = '❌ Cancel Edit';
+    resetBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'text-white');
+    resetBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+  }
+  
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showInlineMessage('📝 Editing mode: Update the fields and click "Update Entry" button.', 'info');
+}
+
+// Cancel edit
+function cancelEditDailyRegister() {
+  resetFormToAddMode();
+  
+  const form = document.getElementById('dailyRegisterForm');
+  if (form) {
+    form.reset();
+  }
+  
+  // Reset companies to just one
+  companyIndexCounter = 1;
+  const companiesContainer = document.getElementById('companiesContainer');
+  companiesContainer.innerHTML = `
+    <div class="company-item first-company" data-company-index="0">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+          <select name="companies[0][name]" required class="input-field w-full company-select" data-index="0">
+            <option value="">Select Company</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Rate *</label>
+          <input type="number" name="companies[0][rate]" required class="input-field w-full" placeholder="0" step="0.01">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Destination City *</label>
+          <input type="text" name="companies[0][location]" required class="input-field w-full" placeholder="Delivery City">
+        </div>
+      </div>
+    </div>
+  `;
+  populateCompanySelects();
+  
+  // Reset delivery cities
+  deliveryCityCounter = 1;
+  document.getElementById('deliveryCitiesList').innerHTML = '';
+  document.getElementById('additionalDeliveriesSection').classList.add('hidden');
+  
+  // Hide commission fields
+  document.getElementById('commissionFields').classList.add('hidden');
+  
+  showInlineMessage('Edit cancelled. Form reset to add new entry mode.', 'info');
+}
+
+// ============================================================================
+// INITIALIZE ON PAGE LOAD
+// ============================================================================
+
+// Add to your existing DOMContentLoaded or initialization function
+// If you already have a DOMContentLoaded listener, add initializeEnhancedDailyRegister() to it
+// Otherwise, use this:
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a bit for other initializations to complete
+  setTimeout(function() {
+    initializeEnhancedDailyRegister();
+  }, 500);
+});
+
+console.log('Enhanced Daily Register module loaded');
+
 // ============================================================================
 // ENHANCED DAILY REGISTER - JavaScript Additions
 // Add this code to the END of your dashboard-main.js file
