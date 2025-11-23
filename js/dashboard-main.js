@@ -1,4 +1,4 @@
-    const defaultConfig = {
+const defaultConfig = {
       company_title: "South Gujrat Freight Carrier"
     };
 
@@ -1416,87 +1416,89 @@
       }
     }
 
-   function handleDailyForChallanSelect(e) {
-  const entryId = e.target.value;
-  if (!entryId) {
-    const linkedLRsList = document.getElementById('linkedLRsList');
-    if (linkedLRsList) {
-      linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No daily entry selected</p>';
+    function handleDailyForChallanSelect(e) {
+      const entryId = e.target.value;
+      if (!entryId) {
+        const linkedLRsList = document.getElementById('linkedLRsList');
+        if (linkedLRsList) {
+          linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No daily entry selected</p>';
+        }
+        return;
+      }
+      
+      const entry = allRecords.find(r => r.__backendId === entryId);
+      if (!entry) return;
+      
+      // Auto-fill form fields
+      const form = document.getElementById('challanBookForm');
+      if (form) {
+        form.truckNumber.value = entry.truckNumber || '';
+        form.from.value = entry.from || '';
+        
+        if (entry.companies && entry.companies.length > 0) {
+          form.to.value = entry.companies[0].location || '';
+        } else {
+          form.to.value = entry.to || '';
+        }
+      }
+      
+      // Find all LRs linked to this daily entry
+      const linkedLRs = allRecords.filter(r => 
+        (r.type === 'booking_lr' || r.type === 'non_booking_lr') && 
+        r.dailyEntryId === entryId
+      );
+      
+      // Display linked LRs as selectable checkboxes
+      const linkedLRsList = document.getElementById('linkedLRsList');
+      
+      if (!linkedLRsList) return;
+      
+      if (linkedLRs.length === 0) {
+        linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No LRs found for this entry</p>';
+      } else {
+        linkedLRsList.innerHTML = `
+          <div class="space-y-2">
+            <p class="text-sm font-semibold text-gray-700 mb-2">Select LR Numbers to link with this Challan:</p>
+            ${linkedLRs.map((lr, index) => `
+              <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name="selectedLRs" 
+                  value="${lr.lrNumber}" 
+                  class="w-4 h-4 text-blue-600"
+                  onchange="updateChallanLinkedLRs()"
+                >
+                <span class="text-sm">
+                  <strong>${lr.lrNumber}</strong> - ${lr.consignorName || 'N/A'} → ${lr.consigneeName || 'N/A'} 
+                  (${lr.weight || 0}T, ₹${lr.companyRate || 0})
+                </span>
+              </label>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      const linkedLRInput = document.getElementById('challanLinkedLRs');
+      if (linkedLRInput) {
+        linkedLRInput.value = '';
+      }
     }
-    return;
-  }
-  
-  const entry = allRecords.find(r => r.__backendId === entryId);
-  if (!entry) return;
-  
-  // Auto-fill form fields
-  const form = document.getElementById('challanBookForm');
-  if (form) {
-    form.truckNumber.value = entry.truckNumber || '';
-    form.from.value = entry.from || '';
-    
-    if (entry.companies && entry.companies.length > 0) {
-      form.to.value = entry.companies[0].location || '';
-    } else {
-      form.to.value = entry.to || '';
+
+    // Update linked LR numbers based on checkbox selection
+    function updateChallanLinkedLRs() {
+      const checkboxes = document.querySelectorAll('input[name="selectedLRs"]:checked');
+      const selectedLRs = Array.from(checkboxes).map(cb => cb.value);
+      
+      const linkedLRInput = document.getElementById('challanLinkedLRs');
+      if (linkedLRInput) {
+        linkedLRInput.value = selectedLRs.join(', ');
+      }
     }
-  }
-  
-  // Find all LRs linked to this daily entry
-  const linkedLRs = allRecords.filter(r => 
-    (r.type === 'booking_lr' || r.type === 'non_booking_lr') && 
-    r.dailyEntryId === entryId
-  );
-  
-  // Display linked LRs as selectable checkboxes
-  const linkedLRsList = document.getElementById('linkedLRsList');
-  
-  if (!linkedLRsList) return;
-  
-  if (linkedLRs.length === 0) {
-    linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No LRs found for this entry</p>';
-  } else {
-    linkedLRsList.innerHTML = `
-      <div class="space-y-2">
-        <p class="text-sm font-semibold text-gray-700 mb-2">Select LR Numbers to link with this Challan:</p>
-        ${linkedLRs.map((lr, index) => `
-          <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer">
-            <input 
-              type="checkbox" 
-              name="selectedLRs" 
-              value="${lr.lrNumber}" 
-              class="w-4 h-4 text-blue-600"
-              onchange="updateChallanLinkedLRs()"
-            >
-            <span class="text-sm">
-              <strong>${lr.lrNumber}</strong> - ${lr.consignorName || 'N/A'} → ${lr.consigneeName || 'N/A'} 
-              (${lr.weight || 0}T, ₹${lr.companyRate || 0})
-            </span>
-          </label>
-        `).join('')}
-      </div>
-    `;
-  }
-  
-  const linkedLRInput = document.getElementById('challanLinkedLRs');
-  if (linkedLRInput) {
-    linkedLRInput.value = '';
-  }
-} 
 
     async function handleBillingSubmit(e) {
       e.preventDefault();
       const formData = new FormData(e.target);
-      // Update linked LR numbers based on checkbox selection
-function updateChallanLinkedLRs() {
-  const checkboxes = document.querySelectorAll('input[name="selectedLRs"]:checked');
-  const selectedLRs = Array.from(checkboxes).map(cb => cb.value);
-  
-  const linkedLRInput = document.getElementById('challanLinkedLRs');
-  if (linkedLRInput) {
-    linkedLRInput.value = selectedLRs.join(', ');
-  }
-}
+      
       // Get all selected LR IDs
       const lrIds = formData.getAll('lrId[]');
       
