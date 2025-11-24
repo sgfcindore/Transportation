@@ -3574,6 +3574,210 @@ function populateDailyEntrySelect() {
       staffMaster: { currentPage: 1, itemsPerPage: 15 }
     };
 
+    // ============================================
+    // SEARCH AND SORT STATE MANAGEMENT
+    // ============================================
+    const searchSortState = {
+      dailyRegister: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
+      lr: { searchTerm: '', sortBy: 'lrNumber', sortOrder: 'desc' },
+      nonBookingLR: { searchTerm: '', sortBy: 'lrNumber', sortOrder: 'desc' },
+      challan: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
+      receivedLR: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
+      bills: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
+      profitLoss: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
+      paymentTransactions: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' }
+    };
+
+    // Create search and sort controls HTML
+    function createSearchSortControls(listName, searchPlaceholder, sortOptions) {
+      return `
+        <div class="flex flex-wrap gap-4 mb-4 items-center bg-gray-50 p-3 rounded-lg">
+          <div class="flex-1 min-w-[200px]">
+            <div class="relative">
+              <input 
+                type="text" 
+                id="${listName}Search" 
+                placeholder="${searchPlaceholder}"
+                value="${searchSortState[listName]?.searchTerm || ''}"
+                onkeyup="handleSearch('${listName}', this.value)"
+                class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 font-medium">Sort by:</label>
+            <select 
+              id="${listName}SortBy" 
+              onchange="handleSort('${listName}', this.value, document.getElementById('${listName}SortOrder').value)"
+              class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            >
+              ${sortOptions.map(opt => `<option value="${opt.value}" ${searchSortState[listName]?.sortBy === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('')}
+            </select>
+            <select 
+              id="${listName}SortOrder" 
+              onchange="handleSort('${listName}', document.getElementById('${listName}SortBy').value, this.value)"
+              class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="desc" ${searchSortState[listName]?.sortOrder === 'desc' ? 'selected' : ''}>Newest First</option>
+              <option value="asc" ${searchSortState[listName]?.sortOrder === 'asc' ? 'selected' : ''}>Oldest First</option>
+            </select>
+            <button 
+              onclick="clearSearchSort('${listName}')" 
+              class="px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg"
+              title="Clear filters"
+            >
+              ✕ Clear
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Handle search input
+    function handleSearch(listName, searchTerm) {
+      if (searchSortState[listName]) {
+        searchSortState[listName].searchTerm = searchTerm.toLowerCase().trim();
+        paginationState[listName].currentPage = 1; // Reset to first page
+        refreshList(listName);
+      }
+    }
+
+    // Handle sort change
+    function handleSort(listName, sortBy, sortOrder) {
+      if (searchSortState[listName]) {
+        searchSortState[listName].sortBy = sortBy;
+        searchSortState[listName].sortOrder = sortOrder;
+        refreshList(listName);
+      }
+    }
+
+    // Clear search and sort
+    function clearSearchSort(listName) {
+      if (searchSortState[listName]) {
+        searchSortState[listName].searchTerm = '';
+        searchSortState[listName].sortBy = getDefaultSortBy(listName);
+        searchSortState[listName].sortOrder = 'desc';
+        paginationState[listName].currentPage = 1;
+        
+        // Clear input fields
+        const searchInput = document.getElementById(`${listName}Search`);
+        if (searchInput) searchInput.value = '';
+        
+        refreshList(listName);
+      }
+    }
+
+    // Get default sort field for each list
+    function getDefaultSortBy(listName) {
+      const defaults = {
+        dailyRegister: 'date',
+        lr: 'lrNumber',
+        nonBookingLR: 'lrNumber',
+        challan: 'date',
+        receivedLR: 'date',
+        bills: 'date',
+        profitLoss: 'date',
+        paymentTransactions: 'date'
+      };
+      return defaults[listName] || 'date';
+    }
+
+    // Refresh list based on listName
+    function refreshList(listName) {
+      switch(listName) {
+        case 'dailyRegister': updateDailyRegisterList(); break;
+        case 'lr': updateLRList(); break;
+        case 'nonBookingLR': updateNonBookingLRList(); break;
+        case 'challan': updateChallanBookList(); break;
+        case 'receivedLR': updateReceivedLRList(); break;
+        case 'bills': updateBillsList(); break;
+        case 'profitLoss': calculateProfitLoss(); break;
+        case 'paymentTransactions': updatePaymentTransactionsList(); break;
+      }
+    }
+
+    // Filter entries based on search term
+    function filterEntries(entries, listName, searchFields) {
+      const state = searchSortState[listName];
+      if (!state || !state.searchTerm) return entries;
+      
+      return entries.filter(entry => {
+        return searchFields.some(field => {
+          const value = entry[field];
+          if (value === null || value === undefined) return false;
+          return String(value).toLowerCase().includes(state.searchTerm);
+        });
+      });
+    }
+
+    // Sort entries based on sort settings
+    function sortEntries(entries, listName) {
+      const state = searchSortState[listName];
+      if (!state) return entries;
+      
+      const { sortBy, sortOrder } = state;
+      
+      return [...entries].sort((a, b) => {
+        let aVal = a[sortBy];
+        let bVal = b[sortBy];
+        
+        // Handle date sorting
+        if (sortBy === 'date' || sortBy === 'lrDate' || sortBy === 'billDate') {
+          aVal = parseDate(aVal);
+          bVal = parseDate(bVal);
+        }
+        // Handle number sorting (LR numbers, challan numbers)
+        else if (sortBy === 'lrNumber' || sortBy === 'challanNumber') {
+          aVal = parseInt(String(aVal).replace(/\D/g, '')) || 0;
+          bVal = parseInt(String(bVal).replace(/\D/g, '')) || 0;
+        }
+        // Handle string sorting
+        else {
+          aVal = String(aVal || '').toLowerCase();
+          bVal = String(bVal || '').toLowerCase();
+        }
+        
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // Parse date helper
+    function parseDate(dateStr) {
+      if (!dateStr) return new Date(0);
+      // Handle dd-mm-yyyy format
+      if (dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        if (parts[0].length === 4) {
+          // yyyy-mm-dd format
+          return new Date(dateStr);
+        } else {
+          // dd-mm-yyyy format
+          return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+      }
+      return new Date(dateStr);
+    }
+
+    // Inject search controls into a container
+    function injectSearchControls(containerId, listName, searchPlaceholder, sortOptions) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      
+      // Check if controls already exist
+      let controlsDiv = document.getElementById(`${listName}-search-controls`);
+      if (!controlsDiv) {
+        controlsDiv = document.createElement('div');
+        controlsDiv.id = `${listName}-search-controls`;
+        container.insertBefore(controlsDiv, container.firstChild);
+      }
+      controlsDiv.innerHTML = createSearchSortControls(listName, searchPlaceholder, sortOptions);
+    }
+
     // Pagination helper function
     function createPaginationControls(listName, totalItems, containerId) {
       const state = paginationState[listName];
@@ -4121,10 +4325,32 @@ function populateDailyEntrySelect() {
 
 function updateDailyRegisterList() {
       const tbody = document.getElementById('dailyRegisterList');
-      const entries = allRecords.filter(r => r.type === 'daily_register');
+      let entries = allRecords.filter(r => r.type === 'daily_register');
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('dailyRegister-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'dailyRegister-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('dailyRegister', '🔍 Search by truck number, company...', [
+          { value: 'date', label: 'Date' },
+          { value: 'truckNumber', label: 'Truck Number' },
+          { value: 'companyName', label: 'Company' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      entries = filterEntries(entries, 'dailyRegister', ['truckNumber', 'companyName', 'from', 'to', 'partyName', 'placedBy']);
+      
+      // Apply sort
+      entries = sortEntries(entries, 'dailyRegister');
       
       if (entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" class="text-center text-gray-500">No entries yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center text-gray-500">No entries found</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('dailyRegister-pagination');
         if (paginationDiv) paginationDiv.remove();
@@ -4254,10 +4480,33 @@ function updateDailyRegisterList() {
 
     function updateLRList() {
       const tbody = document.getElementById('lrList');
-      const lrs = allRecords.filter(r => r.type === 'booking_lr');
+      let lrs = allRecords.filter(r => r.type === 'booking_lr');
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('lr-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'lr-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('lr', '🔍 Search by LR number, truck number...', [
+          { value: 'lrNumber', label: 'LR Number' },
+          { value: 'lrDate', label: 'Date' },
+          { value: 'truckNumber', label: 'Truck Number' },
+          { value: 'consignorName', label: 'Consignor' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      lrs = filterEntries(lrs, 'lr', ['lrNumber', 'truckNumber', 'consignorName', 'consigneeName', 'billingTo', 'productName']);
+      
+      // Apply sort
+      lrs = sortEntries(lrs, 'lr');
       
       if (lrs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-gray-500">No booking LRs created yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-gray-500">No booking LRs found</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('lr-pagination');
         if (paginationDiv) paginationDiv.remove();
@@ -4313,10 +4562,33 @@ function updateDailyRegisterList() {
 
     function updateNonBookingLRList() {
       const tbody = document.getElementById('nonBookingLRList');
-      const lrs = allRecords.filter(r => r.type === 'non_booking_lr');
+      let lrs = allRecords.filter(r => r.type === 'non_booking_lr');
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('nonBookingLR-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'nonBookingLR-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('nonBookingLR', '🔍 Search by LR number, truck number, party...', [
+          { value: 'lrNumber', label: 'LR Number' },
+          { value: 'lrDate', label: 'Date' },
+          { value: 'truckNumber', label: 'Truck Number' },
+          { value: 'partyName', label: 'Party Name' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      lrs = filterEntries(lrs, 'nonBookingLR', ['lrNumber', 'truckNumber', 'partyName', 'from', 'to', 'productName']);
+      
+      // Apply sort
+      lrs = sortEntries(lrs, 'nonBookingLR');
       
       if (lrs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-gray-500">No non-booking LRs yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-gray-500">No non-booking LRs found</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('nonBookingLR-pagination');
         if (paginationDiv) paginationDiv.remove();
@@ -4370,10 +4642,32 @@ function updateDailyRegisterList() {
 
     function updateChallanBookList() {
       const tbody = document.getElementById('challanBookList');
-      const entries = allRecords.filter(r => r.type === 'challan_book');
+      let entries = allRecords.filter(r => r.type === 'challan_book');
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('challan-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'challan-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('challan', '🔍 Search by challan no, LR no, truck no...', [
+          { value: 'date', label: 'Date' },
+          { value: 'challanNumber', label: 'Challan Number' },
+          { value: 'truckNumber', label: 'Truck Number' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      entries = filterEntries(entries, 'challan', ['challanNumber', 'lrNumbers', 'truckNumber', 'from', 'to', 'ownerName']);
+      
+      // Apply sort
+      entries = sortEntries(entries, 'challan');
       
       if (entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" class="text-center text-gray-500">No challan records yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center text-gray-500">No challan records found</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('challan-pagination');
         if (paginationDiv) paginationDiv.remove();
@@ -4464,10 +4758,32 @@ function updateDailyRegisterList() {
 
     function updateReceivedLRList() {
       const tbody = document.getElementById('receivedLRList');
-      const lrs = allRecords.filter(r => (r.type === 'booking_lr' || r.type === 'non_booking_lr') && r.lrReceived);
+      let lrs = allRecords.filter(r => (r.type === 'booking_lr' || r.type === 'non_booking_lr') && r.lrReceived);
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('receivedLR-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'receivedLR-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('receivedLR', '🔍 Search by LR no, truck no, company...', [
+          { value: 'lrReceivedDate', label: 'Received Date' },
+          { value: 'lrNumber', label: 'LR Number' },
+          { value: 'truckNumber', label: 'Truck Number' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      lrs = filterEntries(lrs, 'receivedLR', ['lrNumber', 'truckNumber', 'companyName', 'partyName', 'lrCondition']);
+      
+      // Apply sort
+      lrs = sortEntries(lrs, 'receivedLR');
       
       if (lrs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-gray-500">No received LRs yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-gray-500">No received LRs found</td></tr>';
         return;
       }
 
@@ -4843,28 +5159,70 @@ function updateDailyRegisterList() {
       // Now populate the table
       const tbody = document.getElementById('profitLossByTruck');
       
-      // Sort by date (newest first)
-      allTrips.sort((a, b) => {
-        const dateA = new Date(a.date.split('-').reverse().join('-'));
-        const dateB = new Date(b.date.split('-').reverse().join('-'));
-        return dateB - dateA;
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('profitLoss-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'profitLoss-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('profitLoss', '🔍 Search by truck no, LR no, company...', [
+          { value: 'date', label: 'Date' },
+          { value: 'lrNumber', label: 'LR Number' },
+          { value: 'truckNumber', label: 'Truck Number' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      let filteredTrips = allTrips.filter(trip => {
+        const state = searchSortState['profitLoss'];
+        if (!state || !state.searchTerm) return true;
+        const searchTerm = state.searchTerm.toLowerCase();
+        return (
+          (trip.truckNumber && trip.truckNumber.toLowerCase().includes(searchTerm)) ||
+          (trip.lrNumber && trip.lrNumber.toLowerCase().includes(searchTerm)) ||
+          (trip.companyPartyName && trip.companyPartyName.toLowerCase().includes(searchTerm))
+        );
       });
       
-      if (allTrips.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500" style="padding: 20px;">No data available</td></tr>';
+      // Apply sort
+      const sortState = searchSortState['profitLoss'];
+      if (sortState) {
+        filteredTrips.sort((a, b) => {
+          let aVal, bVal;
+          if (sortState.sortBy === 'date') {
+            aVal = parseDate(a.date);
+            bVal = parseDate(b.date);
+          } else if (sortState.sortBy === 'lrNumber') {
+            aVal = parseInt(String(a.lrNumber).replace(/\D/g, '')) || 0;
+            bVal = parseInt(String(b.lrNumber).replace(/\D/g, '')) || 0;
+          } else {
+            aVal = String(a[sortState.sortBy] || '').toLowerCase();
+            bVal = String(b[sortState.sortBy] || '').toLowerCase();
+          }
+          if (aVal < bVal) return sortState.sortOrder === 'asc' ? -1 : 1;
+          if (aVal > bVal) return sortState.sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+      
+      if (filteredTrips.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500" style="padding: 20px;">No data found</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('profitLoss-pagination');
         if (paginationDiv) paginationDiv.remove();
         return;
       }
       
-      // Calculate totals from ALL data (not just paginated)
+      // Calculate totals from ALL filtered data (not just paginated)
       let totalTruckAmount = 0;
       let totalLRAmount = 0;
       let totalDeductions = 0;
       let totalNetProfit = 0;
       
-      allTrips.forEach(trip => {
+      filteredTrips.forEach(trip => {
         totalTruckAmount += trip.truckTotal;
         totalLRAmount += trip.lrTotal;
         totalDeductions += trip.deductions;
@@ -4874,7 +5232,7 @@ function updateDailyRegisterList() {
       });
       
       // PAGINATION: Get only current page data
-      const paginatedTrips = getPaginatedData(allTrips, 'profitLoss');
+      const paginatedTrips = getPaginatedData(filteredTrips, 'profitLoss');
       const startIndex = (paginationState['profitLoss'].currentPage - 1) * paginationState['profitLoss'].itemsPerPage;
       
       let tableHTML = '';
@@ -4917,7 +5275,7 @@ function updateDailyRegisterList() {
       tbody.innerHTML = tableHTML;
       
       // PAGINATION: Add controls after the table
-      const paginationHTML = createPaginationControls('profitLoss', allTrips.length);
+      const paginationHTML = createPaginationControls('profitLoss', filteredTrips.length);
       let paginationDiv = document.getElementById('profitLoss-pagination');
       if (!paginationDiv) {
         paginationDiv = document.createElement('div');
@@ -4948,10 +5306,32 @@ function updateDailyRegisterList() {
 
     function updateBillsList() {
       const tbody = document.getElementById('billsList');
-      const bills = allRecords.filter(r => (r.type === 'booking_lr' || r.type === 'non_booking_lr') && r.billNumber);
+      let bills = allRecords.filter(r => (r.type === 'booking_lr' || r.type === 'non_booking_lr') && r.billNumber);
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('bills-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'bills-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('bills', '🔍 Search by bill no, LR no, company...', [
+          { value: 'billDate', label: 'Bill Date' },
+          { value: 'billNumber', label: 'Bill Number' },
+          { value: 'lrNumber', label: 'LR Number' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      bills = filterEntries(bills, 'bills', ['billNumber', 'lrNumber', 'billingTo', 'truckNumber']);
+      
+      // Apply sort
+      bills = sortEntries(bills, 'bills');
       
       if (bills.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-gray-500">No bills created yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-gray-500">No bills found</td></tr>';
         return;
       }
 
@@ -6652,10 +7032,32 @@ function updateDailyRegisterList() {
       const tbody = document.getElementById('paymentTransactionsList');
       if (!tbody) return;
 
-      const payments = allRecords.filter(r => r.type === 'payment_transaction');
+      let payments = allRecords.filter(r => r.type === 'payment_transaction');
+      
+      // Inject search controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('paymentTransactions-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'paymentTransactions-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('paymentTransactions', '🔍 Search by truck no, company, reference...', [
+          { value: 'paymentDate', label: 'Payment Date' },
+          { value: 'paymentAmount', label: 'Amount' },
+          { value: 'truckNumber', label: 'Truck Number' }
+        ]);
+        const tableWrapper = tbody?.closest('.overflow-x-auto') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+      
+      // Apply search filter
+      payments = filterEntries(payments, 'paymentTransactions', ['truckNumber', 'companyName', 'partyName', 'paymentReference', 'paymentMode', 'paymentType']);
+      
+      // Apply sort
+      payments = sortEntries(payments, 'paymentTransactions');
 
       if (payments.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-500">No payment transactions recorded yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-500">No payment transactions found</td></tr>';
         // Clear pagination
         const paginationContainer = document.getElementById('paymentTransactions-pagination');
         if (paginationContainer) paginationContainer.innerHTML = '';
