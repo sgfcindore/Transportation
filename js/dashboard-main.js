@@ -4983,11 +4983,17 @@ function updateDailyRegisterList() {
           deductions: 0,     // Total deductions (TDS, damages, claims, etc.)
           tdsAmount: 0,      // TDS specifically
           damageCharges: 0,  // Damage charges
-          otherDeductions: 0 // Other deductions
+          otherDeductions: 0,// Other deductions
+          commission: 0      // Commission earned (profit)
         };
         
         // Get Total Amount from LR (it's in companyRate field)
         tripData.lrTotal = parseFloat(lr.companyRate) || 0;
+        
+        // Get Commission from LR (if applicable)
+        if (lr.commissionApplicable && lr.commission) {
+          tripData.commission = parseFloat(lr.commission) || 0;
+        }
         
         // Get company/party name - first try from LR itself
         tripData.companyPartyName = lr.companyName || lr.partyName || lr.consignorName || '';
@@ -5222,14 +5228,16 @@ function updateDailyRegisterList() {
       let totalTruckAmount = 0;
       let totalLRAmount = 0;
       let totalDeductions = 0;
+      let totalCommission = 0;
       let totalNetProfit = 0;
       
       filteredTrips.forEach(trip => {
         totalTruckAmount += trip.truckTotal;
         totalLRAmount += trip.lrTotal;
         totalDeductions += trip.deductions;
-        // Net Profit = LR Amount - Truck Amount - Deductions
-        const netProfit = trip.lrTotal - trip.truckTotal - trip.deductions;
+        totalCommission += trip.commission;
+        // Net Profit = LR Amount - Truck Amount - Deductions + Commission
+        const netProfit = trip.lrTotal - trip.truckTotal - trip.deductions + trip.commission;
         totalNetProfit += netProfit;
       });
       
@@ -5242,7 +5250,7 @@ function updateDailyRegisterList() {
       // Build table rows with paginated data
       paginatedTrips.forEach((trip, index) => {
         const grossProfit = trip.lrTotal - trip.truckTotal;
-        const netProfit = grossProfit - trip.deductions;
+        const netProfit = grossProfit - trip.deductions + trip.commission;
         const isProfit = netProfit >= 0;
         
         // Build deductions tooltip
@@ -5266,6 +5274,9 @@ function updateDailyRegisterList() {
             <td style="text-align: right; font-weight: 600; padding: 12px;">₹${trip.lrTotal.toLocaleString('en-IN')}</td>
             <td style="text-align: right; padding: 12px; color: ${trip.deductions > 0 ? '#dc2626' : '#6b7280'};" title="${deductionTooltip}">
               ${trip.deductions > 0 ? '-₹' + trip.deductions.toLocaleString('en-IN') : '₹0'}
+            </td>
+            <td style="text-align: right; padding: 12px; color: ${trip.commission > 0 ? '#10b981' : '#6b7280'};">
+              ${trip.commission > 0 ? '+₹' + trip.commission.toLocaleString('en-IN') : '₹0'}
             </td>
             <td style="text-align: right; font-weight: bold; padding: 12px; color: ${isProfit ? '#10b981' : '#ef4444'};">
               ${isProfit ? '+' : ''}₹${Math.abs(netProfit).toLocaleString('en-IN')}
@@ -5297,12 +5308,19 @@ function updateDailyRegisterList() {
         footerDeductionsEl.style.color = totalDeductions > 0 ? '#dc2626' : '#6b7280';
       }
       
+      // Update commission footer if it exists
+      const footerCommissionEl = document.getElementById('footerCommission');
+      if (footerCommissionEl) {
+        footerCommissionEl.textContent = `+₹${totalCommission.toLocaleString('en-IN')}`;
+        footerCommissionEl.style.color = totalCommission > 0 ? '#10b981' : '#6b7280';
+      }
+      
       const footerProfitEl = document.getElementById('footerProfitTotal');
       footerProfitEl.textContent = `${totalNetProfit >= 0 ? '+' : ''}₹${Math.abs(totalNetProfit).toLocaleString('en-IN')}`;
       footerProfitEl.style.color = totalNetProfit >= 0 ? '#10b981' : '#ef4444';
       
       console.log('=== P&L Calculation Complete ===');
-      console.log(`Totals - Truck: ₹${totalTruckAmount}, LR: ₹${totalLRAmount}, Deductions: ₹${totalDeductions}, Net Profit: ₹${totalNetProfit}`);
+      console.log(`Totals - Truck: ₹${totalTruckAmount}, LR: ₹${totalLRAmount}, Deductions: ₹${totalDeductions}, Commission: ₹${totalCommission}, Net Profit: ₹${totalNetProfit}`);
     }
 
 
