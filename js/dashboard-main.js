@@ -3587,6 +3587,7 @@ function populateDailyEntrySelect() {
       receivedLR: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
       bills: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
       profitLoss: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' },
+      gst: { searchTerm: '', sortBy: 'lrDate', sortOrder: 'desc' },
       paymentTransactions: { searchTerm: '', sortBy: 'date', sortOrder: 'desc' }
     };
 
@@ -3682,6 +3683,7 @@ function populateDailyEntrySelect() {
         receivedLR: 'date',
         bills: 'date',
         profitLoss: 'date',
+        gst: 'lrDate',
         paymentTransactions: 'date'
       };
       return defaults[listName] || 'date';
