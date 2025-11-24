@@ -1566,31 +1566,32 @@
       
       <div class="table-container">
        <table class="w-full">
-        <thead>
-         <tr style="background: #1e3a8a; color: white;">
-          <th style="text-align: center; padding: 12px; width: 80px;">Serial No.</th>
-          <th style="text-align: left; padding: 12px; width: 120px;">Truck Number</th>
-          <th style="text-align: left; padding: 12px; width: 110px;">Date</th>
-          <th style="text-align: left; padding: 12px;">Company/Party Name</th>
-          <th style="text-align: right; padding: 12px; width: 140px;">Total Truck Amount<br><small>(from Challan)</small></th>
-          <th style="text-align: right; padding: 12px; width: 140px;">Total Amount<br><small>(from LR)</small></th>
-          <th style="text-align: right; padding: 12px; width: 120px;">Profit</th>
-         </tr>
-        </thead>
-        <tbody id="profitLossByTruck">
-         <tr>
-          <td colspan="7" class="text-center text-gray-500" style="padding: 20px;">Loading data...</td>
-         </tr>
-        </tbody>
-        <tfoot>
-         <tr style="background: #f3f4f6; font-weight: bold;">
-          <td colspan="4" style="text-align: right; padding: 12px;">Total:</td>
-          <td style="text-align: right; padding: 12px;" id="footerTruckTotal">₹0</td>
-          <td style="text-align: right; padding: 12px;" id="footerLRTotal">₹0</td>
-          <td style="text-align: right; padding: 12px;" id="footerProfitTotal">₹0</td>
-         </tr>
-        </tfoot>
-       </table>
+  <thead>
+    <tr style="background: #1e3a8a; color: white;">
+      <th style="text-align: center; padding: 12px; width: 60px;">S.No.</th>
+      <th style="text-align: left; padding: 12px; width: 110px;">Truck Number</th>
+      <th style="text-align: left; padding: 12px; width: 100px;">LR Number</th>
+      <th style="text-align: left; padding: 12px; width: 100px;">Date</th>
+      <th style="text-align: left; padding: 12px;">Company/Party Name</th>
+      <th style="text-align: right; padding: 12px; width: 130px;">Truck Amount<br><small>(per LR)</small></th>
+      <th style="text-align: right; padding: 12px; width: 130px;">LR Amount<br><small>(from LR)</small></th>
+      <th style="text-align: right; padding: 12px; width: 100px;">Profit</th>
+    </tr>
+  </thead>
+  <tbody id="profitLossByTruck">
+    <tr>
+      <td colspan="8" class="text-center text-gray-500" style="padding: 20px;">Loading data...</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr style="background: #f3f4f6; font-weight: bold;">
+      <td colspan="5" style="text-align: right; padding: 12px;">Total:</td>
+      <td style="text-align: right; padding: 12px;" id="footerTruckTotal">₹0</td>
+      <td style="text-align: right; padding: 12px;" id="footerLRTotal">₹0</td>
+      <td style="text-align: right; padding: 12px;" id="footerProfitTotal">₹0</td>
+    </tr>
+  </tfoot>
+</table>
       </div>
      </div>
     </div><!-- Ledger Tab -->
