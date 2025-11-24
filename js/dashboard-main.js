@@ -3697,6 +3697,7 @@ function populateDailyEntrySelect() {
         case 'receivedLR': updateReceivedLRList(); break;
         case 'bills': updateBillsList(); break;
         case 'profitLoss': calculateProfitLoss(); break;
+        case 'gst': updateGSTList(); break;
         case 'paymentTransactions': updatePaymentTransactionsList(); break;
       }
     }
