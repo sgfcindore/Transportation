@@ -2306,7 +2306,22 @@ function populateDailyEntrySelect() {
     function populateDailyForChallanSelect() {
   const select = document.getElementById('selectDailyForChallan');
   
-  const entries = allRecords.filter(r => r.type === 'daily_register');
+  // Get all challan records to check which daily entries already have a challan
+  const challanRecords = allRecords.filter(r => r.type === 'challan_book');
+  const usedDailyEntryIds = new Set(challanRecords.map(c => c.dailyEntryId).filter(Boolean));
+  
+  // Filter daily register entries - exclude those that already have a challan
+  const entries = allRecords.filter(r => {
+    if (r.type !== 'daily_register') return false;
+    
+    // Check if this entry already has a challan created
+    const entryId = r.__backendId || r.__firebaseId;
+    if (usedDailyEntryIds.has(entryId)) {
+      return false; // Already has challan, don't show
+    }
+    
+    return true;
+  });
   
   select.innerHTML = '<option value="">-- Select a daily register entry --</option>';
   entries.forEach(entry => {
@@ -2316,13 +2331,16 @@ function populateDailyEntrySelect() {
     // Enhanced display for multiple companies
     if (entry.companies && entry.companies.length > 1) {
       const companyNames = entry.companies.map(c => c.name).join(', ');
-      option.textContent = `${entry.date} - ${entry.truckNumber} - ${companyNames} (${entry.from} → ${entry.bookingType})`;
+      const destinations = entry.companies.map(c => c.location).filter(Boolean).join(', ');
+      option.textContent = `${entry.date} - ${entry.truckNumber} - ${companyNames} (${entry.from} → ${destinations}) - ${entry.bookingType}`;
     } else {
-      option.textContent = `${entry.date} - ${entry.truckNumber} - ${entry.companyName || 'N/A'} (${entry.from} → ${entry.bookingType})`;
+      option.textContent = `${entry.date} - ${entry.truckNumber} - ${entry.companyName || 'N/A'} (${entry.from} → ${entry.to || 'N/A'}) - ${entry.bookingType}`;
     }
     
     select.appendChild(option);
   });
+  
+  console.log(`📋 Challan dropdown: ${entries.length} entries available (${usedDailyEntryIds.size} already have challans)`);
 }
     function populateLRSelect() {
       const select = document.getElementById('selectLR');
