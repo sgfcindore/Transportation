@@ -1435,10 +1435,22 @@ const defaultConfig = {
         form.truckNumber.value = entry.truckNumber || '';
         form.from.value = entry.from || '';
         
+        // Handle single or multiple destinations
         if (entry.companies && entry.companies.length > 0) {
-          form.to.value = entry.companies[0].location || '';
+          if (entry.companies.length === 1) {
+            form.to.value = entry.companies[0].location || '';
+          } else {
+            // Multiple destinations - show all separated by comma
+            const destinations = entry.companies.map(c => c.location).join(', ');
+            form.to.value = destinations;
+          }
         } else {
           form.to.value = entry.to || '';
+        }
+        
+        // IMPORTANT: Auto-fill the date field (this was missing!)
+        if (form.date) {
+          form.date.value = entry.date || new Date().toISOString().split('T')[0];
         }
       }
       
@@ -1889,18 +1901,38 @@ const defaultConfig = {
       const entry = allRecords.find(r => r.__backendId === entryId);
       if (entry) {
         const form = document.getElementById('lrForm');
-        form.truckNumber.value = entry.truckNumber || '';
-        form.companyName.value = entry.companyName || '';
         
-        const company = allRecords.find(r => r.type === 'company_master' && r.companyName === entry.companyName);
+        // Auto-fill truck number
+        form.truckNumber.value = entry.truckNumber || '';
+        
+        // Auto-fill company name (use first company if multiple)
+        if (entry.companies && entry.companies.length > 0) {
+          form.companyName.value = entry.companies[0].name || '';
+          
+          // Auto-fill destination (from first company)
+          form.to.value = entry.companies[0].location || '';
+        } else {
+          form.companyName.value = entry.companyName || '';
+          form.to.value = entry.to || '';
+        }
+        
+        // Auto-fill company GST
+        const companyName = form.companyName.value;
+        const company = allRecords.find(r => r.type === 'company_master' && r.companyName === companyName);
         if (company) {
           form.companyGST.value = company.companyGST || '';
         }
         
+        // Auto-fill origin
         form.from.value = entry.from || '';
-        form.to.value = entry.to || '';
+        
+        // Auto-fill payment category
         form.paymentCategory.value = entry.bookingType || '';
+        
+        // Store daily entry ID
         form.dailyEntryId.value = entryId;
+        
+        console.log('✅ Auto-filled LR form from daily register:', entryId);
       }
     }
 
@@ -3942,35 +3974,54 @@ function populateDailyEntrySelect() {
       const paginatedLRs = getPaginatedData(lrs, 'lr');
       const startIndex = (paginationState['lr'].currentPage - 1) * paginationState['lr'].itemsPerPage;
 
-      tbody.innerHTML = paginatedLRs.map((lr, index) => `
-        <tr>
-          <td>${startIndex + index + 1}</td>
-          <td>
-            ${lr.lrNumber || 'N/A'}
-            ${lr.lrType === 'To Pay' ? 
-              '<br><span class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full font-semibold">TO PAY</span>' : 
-              '<br><span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-semibold">TO BE BILLED</span>'
-            }
-          </td>
-          <td>${lr.lrDate || 'N/A'}</td>
-          <td>${lr.truckNumber || 'N/A'}</td>
-          <td>${lr.consignorName || 'N/A'}</td>
-          <td>${lr.consigneeName || 'N/A'}</td>
-          <td>${lr.billingTo || 'N/A'}</td>
-          <td>${lr.productName || 'N/A'}</td>
-          <td>${lr.weight || 0}T</td>
-          <td>₹${(lr.advanceToDriver || 0).toLocaleString()}</td>
-          <td><span class="status-badge ${getStatusClass(lr.status)}">${lr.status || 'Pending'}</span></td>
-          <td>
-            <div class="flex gap-1">
-              <button onclick="viewRecord('${lr.__backendId}')" class="text-blue-600 hover:text-blue-800 text-xs" title="View">👁️</button>
-              <button onclick="editBookingLR('${lr.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
-              <button onclick="printRecord('${lr.__backendId}', 'booking_lr')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
-              <button onclick="deleteRecord('${lr.__backendId}')" class="text-red-600 hover:text-red-800 text-xs" title="Delete">🗑️</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = paginatedLRs.map((lr, index) => {
+        // Get the daily register entry to check for multiple companies/locations
+        const dailyEntry = allRecords.find(r => 
+          r.type === 'daily_register' && r.__backendId === (lr.dailyEntryId || lr.dailyRegisterId)
+        );
+        
+        // Build routing display
+        let routingDisplay = '';
+        if (dailyEntry && dailyEntry.companies && dailyEntry.companies.length > 1) {
+          // Multiple destinations
+          const destinations = dailyEntry.companies.map(c => c.location).join(', ');
+          routingDisplay = `${lr.from || 'N/A'} → ${destinations}`;
+        } else {
+          // Single destination
+          routingDisplay = `${lr.from || 'N/A'} → ${lr.to || 'N/A'}`;
+        }
+        
+        return `
+          <tr>
+            <td>${startIndex + index + 1}</td>
+            <td>
+              ${lr.lrNumber || 'N/A'}
+              ${lr.lrType === 'To Pay' ? 
+                '<br><span class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full font-semibold">TO PAY</span>' : 
+                '<br><span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-semibold">TO BE BILLED</span>'
+              }
+            </td>
+            <td>${lr.lrDate || 'N/A'}</td>
+            <td>${lr.truckNumber || 'N/A'}</td>
+            <td>${lr.consignorName || 'N/A'}</td>
+            <td>${lr.consigneeName || 'N/A'}</td>
+            <td>${lr.billingTo || 'N/A'}</td>
+            <td title="${routingDisplay}">${routingDisplay}</td>
+            <td>${lr.productName || 'N/A'}</td>
+            <td>${lr.weight || 0}T</td>
+            <td>₹${(lr.advanceToDriver || 0).toLocaleString()}</td>
+            <td><span class="status-badge ${getStatusClass(lr.status)}">${lr.status || 'Pending'}</span></td>
+            <td>
+              <div class="flex gap-1">
+                <button onclick="viewRecord('${lr.__backendId}')" class="text-blue-600 hover:text-blue-800 text-xs" title="View">👁️</button>
+                <button onclick="editBookingLR('${lr.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
+                <button onclick="printRecord('${lr.__backendId}', 'booking_lr')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
+                <button onclick="deleteRecord('${lr.__backendId}')" class="text-red-600 hover:text-red-800 text-xs" title="Delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
 
       // PAGINATION: Add controls after the table
       const paginationHTML = createPaginationControls('lr', lrs.length);
@@ -4063,6 +4114,19 @@ function populateDailyEntrySelect() {
         const balanceAmount = entry.balanceAmount || (totalAmount - advance);
         const remainingBalance = entry.remainingBalance || 0;
         
+        // FIX: Get date from challan entry, or from linked daily register if not available
+        let displayDate = entry.date || '';
+        if (!displayDate && entry.dailyEntryId) {
+          const dailyEntry = allRecords.find(r => r.__backendId === entry.dailyEntryId);
+          if (dailyEntry && dailyEntry.date) {
+            displayDate = dailyEntry.date;
+          }
+        }
+        // If still no date, use creation date
+        if (!displayDate && entry.createdAt) {
+          displayDate = new Date(entry.createdAt).toISOString().split('T')[0];
+        }
+        
         // Find linked LRs dynamically (in case they weren't stored)
         let lrNumbers = entry.lrNumbers || '';
         let lrCount = entry.linkedLRCount || 0;
@@ -4085,7 +4149,7 @@ function populateDailyEntrySelect() {
           <tr>
             <td>${startIndex + index + 1}</td>
             <td class="font-semibold text-blue-700">${entry.challanNumber || 'N/A'}</td>
-            <td>${entry.date || 'N/A'}</td>
+            <td>${displayDate || 'N/A'}</td>
             <td>${entry.truckNumber || 'N/A'}</td>
             <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${lrNumbers}">${lrDisplay}</td>
             <td>${entry.from || 'N/A'} → ${entry.to || 'N/A'}</td>
