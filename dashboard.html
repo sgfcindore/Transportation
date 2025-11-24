@@ -1565,22 +1565,23 @@
       </div>
       
       <div class="table-container">
-       <table class="w-full">
+      <table class="w-full">
   <thead>
     <tr style="background: #1e3a8a; color: white;">
-      <th style="text-align: center; padding: 12px; width: 60px;">S.No.</th>
-      <th style="text-align: left; padding: 12px; width: 110px;">Truck Number</th>
-      <th style="text-align: left; padding: 12px; width: 100px;">LR Number</th>
-      <th style="text-align: left; padding: 12px; width: 100px;">Date</th>
+      <th style="text-align: center; padding: 12px; width: 50px;">S.No.</th>
+      <th style="text-align: left; padding: 12px; width: 100px;">Truck Number</th>
+      <th style="text-align: left; padding: 12px; width: 90px;">LR Number</th>
+      <th style="text-align: left; padding: 12px; width: 90px;">Date</th>
       <th style="text-align: left; padding: 12px;">Company/Party Name</th>
-      <th style="text-align: right; padding: 12px; width: 130px;">Truck Amount<br><small>(per LR)</small></th>
-      <th style="text-align: right; padding: 12px; width: 130px;">LR Amount<br><small>(from LR)</small></th>
-      <th style="text-align: right; padding: 12px; width: 100px;">Profit</th>
+      <th style="text-align: right; padding: 12px; width: 110px;">Truck Amount<br><small>(per LR)</small></th>
+      <th style="text-align: right; padding: 12px; width: 110px;">LR Amount</th>
+      <th style="text-align: right; padding: 12px; width: 100px;">Deductions<br><small>(TDS/Loss)</small></th>
+      <th style="text-align: right; padding: 12px; width: 100px;">Net Profit</th>
     </tr>
   </thead>
   <tbody id="profitLossByTruck">
     <tr>
-      <td colspan="8" class="text-center text-gray-500" style="padding: 20px;">Loading data...</td>
+      <td colspan="9" class="text-center text-gray-500" style="padding: 20px;">Loading data...</td>
     </tr>
   </tbody>
   <tfoot>
@@ -1588,6 +1589,7 @@
       <td colspan="5" style="text-align: right; padding: 12px;">Total:</td>
       <td style="text-align: right; padding: 12px;" id="footerTruckTotal">₹0</td>
       <td style="text-align: right; padding: 12px;" id="footerLRTotal">₹0</td>
+      <td style="text-align: right; padding: 12px; color: #dc2626;" id="footerDeductions">₹0</td>
       <td style="text-align: right; padding: 12px;" id="footerProfitTotal">₹0</td>
     </tr>
   </tfoot>
