@@ -7409,15 +7409,14 @@ ${payment.paymentNotes || 'No additional notes'}
       </div>
     `).join('');
   }
+  
+  // Update results count
+  const resultsCount = document.getElementById('pendingResultsCount');
+  if (resultsCount) {
+    const totalResults = pendingReceivables.length + pendingPayables.length;
+    resultsCount.textContent = `${totalResults} result${totalResults !== 1 ? 's' : ''} (${pendingReceivables.length} receivables, ${pendingPayables.length} payables)`;
+  }
 }
-      
-      // Update results count
-      const resultsCount = document.getElementById('pendingResultsCount');
-      if (resultsCount) {
-        const totalResults = pendingReceivables.length + pendingPayables.length;
-        resultsCount.textContent = `${totalResults} result${totalResults !== 1 ? 's' : ''} (${pendingReceivables.length} receivables, ${pendingPayables.length} payables)`;
-      }
-    }
 
     async function deletePaymentTransaction(id) {
       if (!confirm('Are you sure you want to delete this payment transaction?')) return;
