@@ -4613,8 +4613,10 @@ function updateDailyRegisterList() {
       const challanRecords = allRecords.filter(r => r.type === 'challan_book');
       const lrRecords = allRecords.filter(r => r.type === 'booking_lr' || r.type === 'non_booking_lr');
       const dailyRegisters = allRecords.filter(r => r.type === 'daily_register');
+      const paymentRecords = allRecords.filter(r => r.type === 'payment_transaction');
+      const deductionRecords = allRecords.filter(r => r.type === 'deduction_entry');
       
-      console.log('Found records - Challan:', challanRecords.length, 'LR:', lrRecords.length, 'Daily:', dailyRegisters.length);
+      console.log('Found records - Challan:', challanRecords.length, 'LR:', lrRecords.length, 'Daily:', dailyRegisters.length, 'Payments:', paymentRecords.length, 'Deductions:', deductionRecords.length);
       
       // Process each LR entry (since LR has the Total Amount field)
       const allTrips = [];
@@ -4637,9 +4639,15 @@ function updateDailyRegisterList() {
           date: lr.lrDate || lr.date || new Date().toLocaleDateString('en-GB'),
           truckNumber: truck,
           lrNumber: lr.lrNumber || 'N/A',
+          lrId: lrId,
+          dailyEntryId: lr.dailyEntryId || lr.dailyRegisterId || '',
           companyPartyName: '',
           truckTotal: 0,     // Total amount paid to truck (from Challan) - individual LR's share
           lrTotal: 0,        // Total amount received from company (from LR)
+          deductions: 0,     // Total deductions (TDS, damages, claims, etc.)
+          tdsAmount: 0,      // TDS specifically
+          damageCharges: 0,  // Damage charges
+          otherDeductions: 0 // Other deductions
         };
         
         // Get Total Amount from LR (it's in companyRate field)
@@ -4748,6 +4756,62 @@ function updateDailyRegisterList() {
           console.log(`❌ No Challan found for LR truck ${truck}, dailyEntryId: ${lr.dailyEntryId || 'none'}`);
         }
         
+        // ============================================
+        // CALCULATE DEDUCTIONS for this LR
+        // ============================================
+        
+        // 1. Find deductions from Payment records linked to this LR
+        const linkedPayments = paymentRecords.filter(p => 
+          p.lrId === lrId || 
+          p.lrNumber === lr.lrNumber ||
+          p.entryId === lrId ||
+          p.dailyEntryId === tripData.dailyEntryId
+        );
+        
+        linkedPayments.forEach(payment => {
+          // TDS deductions
+          if (payment.tdsAmount && parseFloat(payment.tdsAmount) > 0) {
+            tripData.tdsAmount += parseFloat(payment.tdsAmount) || 0;
+          }
+          
+          // Other deductions from payment (if any deduction fields exist)
+          if (payment.deductionAmount) {
+            tripData.otherDeductions += parseFloat(payment.deductionAmount) || 0;
+          }
+        });
+        
+        // 2. Find deductions from Deduction Entry records linked to this LR
+        const linkedDeductions = deductionRecords.filter(d => 
+          d.lrId === lrId || 
+          d.lrNumber === lr.lrNumber
+        );
+        
+        linkedDeductions.forEach(deduction => {
+          tripData.damageCharges += parseFloat(deduction.damageCharges) || 0;
+          tripData.otherDeductions += parseFloat(deduction.otherDeductions) || 0;
+        });
+        
+        // 3. Check LR itself for any stored deductions (from LR Received)
+        if (lr.damageCharges) {
+          tripData.damageCharges += parseFloat(lr.damageCharges) || 0;
+        }
+        if (lr.haltingCharges) {
+          tripData.otherDeductions += parseFloat(lr.haltingCharges) || 0;
+        }
+        if (lr.tdsAmount) {
+          tripData.tdsAmount += parseFloat(lr.tdsAmount) || 0;
+        }
+        if (lr.deductionAmount) {
+          tripData.otherDeductions += parseFloat(lr.deductionAmount) || 0;
+        }
+        
+        // Calculate total deductions
+        tripData.deductions = tripData.tdsAmount + tripData.damageCharges + tripData.otherDeductions;
+        
+        if (tripData.deductions > 0) {
+          console.log(`💰 Deductions for LR ${lr.lrNumber}: TDS=₹${tripData.tdsAmount}, Damage=₹${tripData.damageCharges}, Other=₹${tripData.otherDeductions}, Total=₹${tripData.deductions}`);
+        }
+        
         // Final fallback for company name
         if (!tripData.companyPartyName) {
           tripData.companyPartyName = 'N/A';
@@ -4769,7 +4833,7 @@ function updateDailyRegisterList() {
       });
       
       if (allTrips.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500" style="padding: 20px;">No data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500" style="padding: 20px;">No data available</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('profitLoss-pagination');
         if (paginationDiv) paginationDiv.remove();
@@ -4779,12 +4843,16 @@ function updateDailyRegisterList() {
       // Calculate totals from ALL data (not just paginated)
       let totalTruckAmount = 0;
       let totalLRAmount = 0;
-      let totalProfit = 0;
+      let totalDeductions = 0;
+      let totalNetProfit = 0;
       
       allTrips.forEach(trip => {
         totalTruckAmount += trip.truckTotal;
         totalLRAmount += trip.lrTotal;
-        totalProfit += (trip.lrTotal - trip.truckTotal);
+        totalDeductions += trip.deductions;
+        // Net Profit = LR Amount - Truck Amount - Deductions
+        const netProfit = trip.lrTotal - trip.truckTotal - trip.deductions;
+        totalNetProfit += netProfit;
       });
       
       // PAGINATION: Get only current page data
@@ -4795,8 +4863,19 @@ function updateDailyRegisterList() {
       
       // Build table rows with paginated data
       paginatedTrips.forEach((trip, index) => {
-        const profitLoss = trip.lrTotal - trip.truckTotal;
-        const isProfit = profitLoss >= 0;
+        const grossProfit = trip.lrTotal - trip.truckTotal;
+        const netProfit = grossProfit - trip.deductions;
+        const isProfit = netProfit >= 0;
+        
+        // Build deductions tooltip
+        let deductionTooltip = '';
+        if (trip.deductions > 0) {
+          const parts = [];
+          if (trip.tdsAmount > 0) parts.push(`TDS: ₹${trip.tdsAmount.toLocaleString('en-IN')}`);
+          if (trip.damageCharges > 0) parts.push(`Damage: ₹${trip.damageCharges.toLocaleString('en-IN')}`);
+          if (trip.otherDeductions > 0) parts.push(`Other: ₹${trip.otherDeductions.toLocaleString('en-IN')}`);
+          deductionTooltip = parts.join(', ');
+        }
         
         tableHTML += `
           <tr style="border-bottom: 1px solid #e5e7eb;">
@@ -4804,11 +4883,14 @@ function updateDailyRegisterList() {
             <td style="font-weight: 600; padding: 12px; color: #4f46e5;">${trip.truckNumber}</td>
             <td style="padding: 12px;">${trip.lrNumber || 'N/A'}</td>
             <td style="padding: 12px;">${trip.date}</td>
-            <td style="padding: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${trip.companyPartyName}">${trip.companyPartyName}</td>
+            <td style="padding: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${trip.companyPartyName}">${trip.companyPartyName}</td>
             <td style="text-align: right; font-weight: 600; padding: 12px;">₹${trip.truckTotal.toLocaleString('en-IN')}</td>
             <td style="text-align: right; font-weight: 600; padding: 12px;">₹${trip.lrTotal.toLocaleString('en-IN')}</td>
+            <td style="text-align: right; padding: 12px; color: ${trip.deductions > 0 ? '#dc2626' : '#6b7280'};" title="${deductionTooltip}">
+              ${trip.deductions > 0 ? '-₹' + trip.deductions.toLocaleString('en-IN') : '₹0'}
+            </td>
             <td style="text-align: right; font-weight: bold; padding: 12px; color: ${isProfit ? '#10b981' : '#ef4444'};">
-              ${isProfit ? '+' : ''}₹${Math.abs(profitLoss).toLocaleString('en-IN')}
+              ${isProfit ? '+' : ''}₹${Math.abs(netProfit).toLocaleString('en-IN')}
             </td>
           </tr>
         `;
@@ -4829,11 +4911,20 @@ function updateDailyRegisterList() {
       // Update footer totals (using ALL data, not just paginated)
       document.getElementById('footerTruckTotal').textContent = `₹${totalTruckAmount.toLocaleString('en-IN')}`;
       document.getElementById('footerLRTotal').textContent = `₹${totalLRAmount.toLocaleString('en-IN')}`;
+      
+      // Update deductions footer if it exists
+      const footerDeductionsEl = document.getElementById('footerDeductions');
+      if (footerDeductionsEl) {
+        footerDeductionsEl.textContent = `-₹${totalDeductions.toLocaleString('en-IN')}`;
+        footerDeductionsEl.style.color = totalDeductions > 0 ? '#dc2626' : '#6b7280';
+      }
+      
       const footerProfitEl = document.getElementById('footerProfitTotal');
-      footerProfitEl.textContent = `${totalProfit >= 0 ? '+' : ''}₹${Math.abs(totalProfit).toLocaleString('en-IN')}`;
-      footerProfitEl.style.color = totalProfit >= 0 ? '#10b981' : '#ef4444';
+      footerProfitEl.textContent = `${totalNetProfit >= 0 ? '+' : ''}₹${Math.abs(totalNetProfit).toLocaleString('en-IN')}`;
+      footerProfitEl.style.color = totalNetProfit >= 0 ? '#10b981' : '#ef4444';
       
       console.log('=== P&L Calculation Complete ===');
+      console.log(`Totals - Truck: ₹${totalTruckAmount}, LR: ₹${totalLRAmount}, Deductions: ₹${totalDeductions}, Net Profit: ₹${totalNetProfit}`);
     }
 
 
