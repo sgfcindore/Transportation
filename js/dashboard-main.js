@@ -3909,14 +3909,20 @@ function updateDailyRegisterList() {
         }
         
         // Find all LRs linked to this daily entry
+        // First try by dailyEntryId (new way), then fallback to matching by truck number and date
         const linkedLRs = allRecords.filter(r => {
           if (r.type !== 'booking_lr' && r.type !== 'non_booking_lr') return false;
           
+          // First check if linked by dailyEntryId (for newly created LRs)
           if (r.dailyEntryId === entry.__backendId) return true;
           
+          // Fallback: match by truck number and date (for existing LRs)
+          // Check if truck numbers match and dates are the same
           if (r.truckNumber && entry.truckNumber && 
               r.truckNumber.toLowerCase() === entry.truckNumber.toLowerCase()) {
+            // Also check if the LR date matches the daily register date
             if (r.lrDate && entry.date) {
+              // Compare dates (handle potential format differences)
               const lrDate = new Date(r.lrDate).toDateString();
               const entryDate = new Date(entry.date).toDateString();
               if (lrDate === entryDate) return true;
@@ -3928,6 +3934,7 @@ function updateDailyRegisterList() {
         
         const lrCount = linkedLRs.length;
         
+        // Calculate To Pay and To Be Billed LR counts
         let toPayCount = 0;
         let toBeBilledCount = 0;
         if (linkedLRs.length > 0) {
