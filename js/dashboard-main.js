@@ -1388,9 +1388,37 @@ const defaultConfig = {
 
       const formData = new FormData(e.target);
       
-      const weight = parseFloat(formData.get('weight')) || 0;
-      const ratePerTonne = parseFloat(formData.get('ratePerTonne')) || 0;
-      const truckRate = parseFloat(formData.get('truckRate')) || 0;
+      // Collect individual LR details from the table
+      const lrDetails = [];
+      const selectedCheckboxes = document.querySelectorAll('input[name="selectedLRs"]:checked');
+      
+      selectedCheckboxes.forEach(checkbox => {
+        const lrId = checkbox.value;
+        const lrNumber = checkbox.dataset.lrNumber;
+        const weightInput = document.querySelector(`.lr-weight[data-lr-id="${lrId}"]`);
+        const rateInput = document.querySelector(`.lr-rate[data-lr-id="${lrId}"]`);
+        
+        const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
+        const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
+        const amount = weight * rate;
+        
+        lrDetails.push({
+          lrId: lrId,
+          lrNumber: lrNumber,
+          weight: weight,
+          ratePerTonne: rate,
+          amount: amount
+        });
+      });
+      
+      console.log('📦 LR Details collected for Challan:', lrDetails);
+      
+      // Calculate totals from individual LRs
+      const totalWeight = lrDetails.reduce((sum, lr) => sum + lr.weight, 0);
+      const totalAmount = lrDetails.reduce((sum, lr) => sum + lr.amount, 0);
+      
+      // Use form values for rate (average) or fallback
+      const ratePerTonne = totalWeight > 0 ? (totalAmount / totalWeight) : (parseFloat(formData.get('ratePerTonne')) || 0);
       
       const data = {
         type: 'challan_book',
@@ -1399,9 +1427,13 @@ const defaultConfig = {
         date: formData.get('date'),
         from: formData.get('from'),
         to: formData.get('to'),
-        weight: weight,
+        // Individual LR details
+        lrDetails: lrDetails,
+        // Totals
+        weight: totalWeight || parseFloat(formData.get('weight')) || 0,
         ratePerTonne: ratePerTonne,
-        truckRate: truckRate,
+        truckRate: totalAmount || parseFloat(formData.get('truckRate')) || 0,
+        // Financial details
         advancePaidToOwner: parseFloat(formData.get('advancePaidToOwner')) || 0,
         balanceAmount: parseFloat(formData.get('balanceAmount')) || 0,
         challanDeductions: parseFloat(formData.get('challanDeductions')) || 0,
@@ -1429,20 +1461,25 @@ const defaultConfig = {
         const dailyEntryId = document.getElementById('selectDailyForChallan').value;
         data.dailyEntryId = dailyEntryId;
         
-        // Find ALL LRs linked to this Daily Register entry and add their LR numbers
-        const linkedLRs = allRecords.filter(r => 
-          (r.type === 'booking_lr' || r.type === 'non_booking_lr') && 
-          (r.dailyEntryId === dailyEntryId || r.dailyRegisterId === dailyEntryId)
-        );
-        
-        // Store LR numbers in Challan
-        if (linkedLRs.length > 0) {
-          data.lrNumbers = linkedLRs.map(lr => lr.lrNumber).filter(Boolean).join(', ');
-          data.linkedLRCount = linkedLRs.length;
-          console.log(`✅ Linking ${linkedLRs.length} LR(s) to Challan: ${data.lrNumbers}`);
+        // Store LR numbers from selected checkboxes
+        if (lrDetails.length > 0) {
+          data.lrNumbers = lrDetails.map(lr => lr.lrNumber).filter(Boolean).join(', ');
+          data.linkedLRCount = lrDetails.length;
+          console.log(`✅ Linking ${lrDetails.length} LR(s) to Challan: ${data.lrNumbers}`);
         } else {
-          data.lrNumbers = '';
-          data.linkedLRCount = 0;
+          // Fallback: Find ALL LRs linked to this Daily Register entry
+          const linkedLRs = allRecords.filter(r => 
+            (r.type === 'booking_lr' || r.type === 'non_booking_lr') && 
+            (r.dailyEntryId === dailyEntryId || r.dailyRegisterId === dailyEntryId)
+          );
+          
+          if (linkedLRs.length > 0) {
+            data.lrNumbers = linkedLRs.map(lr => lr.lrNumber).filter(Boolean).join(', ');
+            data.linkedLRCount = linkedLRs.length;
+          } else {
+            data.lrNumbers = '';
+            data.linkedLRCount = 0;
+          }
         }
         
         data.createdAt = new Date().toISOString();
@@ -1472,6 +1509,12 @@ const defaultConfig = {
             dailySelect.classList.remove('opacity-50', 'cursor-not-allowed');
             dailySelect.value = '';
           }
+          
+          // Clear the LR list
+          const linkedLRsList = document.getElementById('linkedLRsList');
+          if (linkedLRsList) {
+            linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">Select a daily register entry to see linked LRs</p>';
+          }
         } else {
           const dailyEntryId = document.getElementById('selectDailyForChallan').value;
           const dailyEntry = allRecords.find(r => r.__backendId === dailyEntryId);
@@ -1483,6 +1526,12 @@ const defaultConfig = {
           showInlineMessage('Challan created successfully!', 'success');
           e.target.reset();
           document.getElementById('selectDailyForChallan').value = '';
+          
+          // Clear the LR list
+          const linkedLRsList = document.getElementById('linkedLRsList');
+          if (linkedLRsList) {
+            linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">Select a daily register entry to see linked LRs</p>';
+          }
         }
       } else {
         const errorMsg = isEditing ? 'Failed to update Challan. Please try again.' : 'Failed to create Challan. Please try again.';
@@ -1497,6 +1546,9 @@ const defaultConfig = {
         if (linkedLRsList) {
           linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No daily entry selected</p>';
         }
+        // Clear the individual LRs section
+        const lrDetailsSection = document.getElementById('challanLRDetailsSection');
+        if (lrDetailsSection) lrDetailsSection.classList.add('hidden');
         return;
       }
       
@@ -1522,9 +1574,14 @@ const defaultConfig = {
           form.to.value = entry.to || '';
         }
         
-        // IMPORTANT: Auto-fill the date field (this was missing!)
+        // IMPORTANT: Auto-fill the date field
         if (form.date) {
           form.date.value = entry.date || new Date().toISOString().split('T')[0];
+        }
+        
+        // Store daily entry ID
+        if (form.dailyEntryId) {
+          form.dailyEntryId.value = entryId;
         }
       }
       
@@ -1534,51 +1591,158 @@ const defaultConfig = {
         r.dailyEntryId === entryId
       );
       
-      // Display linked LRs as selectable checkboxes
+      // Display linked LRs as selectable checkboxes with individual weight/rate/amount
       const linkedLRsList = document.getElementById('linkedLRsList');
       
       if (!linkedLRsList) return;
       
       if (linkedLRs.length === 0) {
-        linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No LRs found for this entry</p>';
+        linkedLRsList.innerHTML = '<p class="text-sm text-gray-500">No LRs found for this entry. You can still create a challan with manual entry.</p>';
+        // Hide the LR details section
+        const lrDetailsSection = document.getElementById('challanLRDetailsSection');
+        if (lrDetailsSection) lrDetailsSection.classList.add('hidden');
       } else {
         linkedLRsList.innerHTML = `
-          <div class="space-y-2">
-            <p class="text-sm font-semibold text-gray-700 mb-2">Select LR Numbers to link with this Challan:</p>
-            ${linkedLRs.map((lr, index) => `
-              <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  name="selectedLRs" 
-                  value="${lr.lrNumber}" 
-                  class="w-4 h-4 text-blue-600"
-                  onchange="updateChallanLinkedLRs()"
-                >
-                <span class="text-sm">
-                  <strong>${lr.lrNumber}</strong> - ${lr.consignorName || 'N/A'} → ${lr.consigneeName || 'N/A'} 
-                  (${lr.weight || 0}T, ₹${lr.companyRate || 0})
-                </span>
-              </label>
-            `).join('')}
+          <div class="space-y-3">
+            <p class="text-sm font-semibold text-gray-700 mb-2">Select LRs and enter individual weight/rate for each:</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr class="bg-blue-50">
+                    <th class="p-2 border text-left w-10">Select</th>
+                    <th class="p-2 border text-left">LR Number</th>
+                    <th class="p-2 border text-left">Consignor → Consignee</th>
+                    <th class="p-2 border text-center w-28">Weight (T)</th>
+                    <th class="p-2 border text-center w-28">Rate/Tonne</th>
+                    <th class="p-2 border text-center w-32">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${linkedLRs.map((lr, index) => `
+                    <tr class="hover:bg-gray-50" data-lr-id="${lr.__backendId}">
+                      <td class="p-2 border text-center">
+                        <input 
+                          type="checkbox" 
+                          name="selectedLRs" 
+                          value="${lr.__backendId}" 
+                          data-lr-number="${lr.lrNumber}"
+                          class="w-4 h-4 text-blue-600 lr-checkbox"
+                          onchange="updateChallanLRTotals()"
+                          checked
+                        >
+                      </td>
+                      <td class="p-2 border font-semibold text-blue-700">${lr.lrNumber || 'N/A'}</td>
+                      <td class="p-2 border text-xs">${lr.consignorName || lr.partyName || 'N/A'} → ${lr.consigneeName || lr.to || 'N/A'}</td>
+                      <td class="p-2 border">
+                        <input 
+                          type="number" 
+                          class="lr-weight input-field w-full text-center p-1" 
+                          data-lr-id="${lr.__backendId}"
+                          value="${lr.weight || 0}" 
+                          step="0.01" 
+                          min="0"
+                          onchange="updateChallanLRTotals()"
+                        >
+                      </td>
+                      <td class="p-2 border">
+                        <input 
+                          type="number" 
+                          class="lr-rate input-field w-full text-center p-1" 
+                          data-lr-id="${lr.__backendId}"
+                          value="${lr.ratePerTonne || 0}" 
+                          step="0.01" 
+                          min="0"
+                          onchange="updateChallanLRTotals()"
+                        >
+                      </td>
+                      <td class="p-2 border text-right font-semibold">
+                        <span class="lr-amount" data-lr-id="${lr.__backendId}">₹${((lr.weight || 0) * (lr.ratePerTonne || 0)).toLocaleString()}</span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+                <tfoot>
+                  <tr class="bg-green-50 font-bold">
+                    <td colspan="3" class="p-2 border text-right">Total:</td>
+                    <td class="p-2 border text-center" id="challanTotalWeight">0 T</td>
+                    <td class="p-2 border text-center">-</td>
+                    <td class="p-2 border text-right text-green-700" id="challanTotalLRAmount">₹0</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         `;
+        
+        // Calculate initial totals
+        setTimeout(() => updateChallanLRTotals(), 100);
       }
       
       const linkedLRInput = document.getElementById('challanLinkedLRs');
       if (linkedLRInput) {
-        linkedLRInput.value = '';
+        linkedLRInput.value = linkedLRs.map(lr => lr.lrNumber).join(', ');
       }
     }
 
-    // Update linked LR numbers based on checkbox selection
-    function updateChallanLinkedLRs() {
+    // Update totals when LR checkboxes or weight/rate change
+    function updateChallanLRTotals() {
       const checkboxes = document.querySelectorAll('input[name="selectedLRs"]:checked');
-      const selectedLRs = Array.from(checkboxes).map(cb => cb.value);
+      const selectedLRIds = Array.from(checkboxes).map(cb => cb.value);
+      const selectedLRNumbers = Array.from(checkboxes).map(cb => cb.dataset.lrNumber);
       
+      let totalWeight = 0;
+      let totalAmount = 0;
+      
+      // Calculate totals from selected LRs only
+      selectedLRIds.forEach(lrId => {
+        const weightInput = document.querySelector(`.lr-weight[data-lr-id="${lrId}"]`);
+        const rateInput = document.querySelector(`.lr-rate[data-lr-id="${lrId}"]`);
+        const amountSpan = document.querySelector(`.lr-amount[data-lr-id="${lrId}"]`);
+        
+        if (weightInput && rateInput) {
+          const weight = parseFloat(weightInput.value) || 0;
+          const rate = parseFloat(rateInput.value) || 0;
+          const amount = weight * rate;
+          
+          totalWeight += weight;
+          totalAmount += amount;
+          
+          // Update individual amount display
+          if (amountSpan) {
+            amountSpan.textContent = `₹${amount.toLocaleString()}`;
+          }
+        }
+      });
+      
+      // Update total displays in the table
+      const totalWeightEl = document.getElementById('challanTotalWeight');
+      const totalAmountEl = document.getElementById('challanTotalLRAmount');
+      
+      if (totalWeightEl) totalWeightEl.textContent = `${totalWeight.toFixed(2)} T`;
+      if (totalAmountEl) totalAmountEl.textContent = `₹${totalAmount.toLocaleString()}`;
+      
+      // Update main form fields
+      const form = document.getElementById('challanBookForm');
+      if (form) {
+        // Update weight field
+        const weightField = document.getElementById('challanWeight');
+        if (weightField) weightField.value = totalWeight.toFixed(2);
+        
+        // Update total amount field
+        const totalField = document.getElementById('challanTotalAmount');
+        if (totalField) totalField.value = totalAmount.toFixed(2);
+        
+        // Recalculate balance
+        calculateChallanBalanceAmount();
+      }
+      
+      // Update linked LR numbers hidden field
       const linkedLRInput = document.getElementById('challanLinkedLRs');
       if (linkedLRInput) {
-        linkedLRInput.value = selectedLRs.join(', ');
+        linkedLRInput.value = selectedLRNumbers.filter(Boolean).join(', ');
       }
+      
+      console.log('📊 Challan LR totals updated:', { totalWeight, totalAmount, selectedLRs: selectedLRNumbers });
     }
 
     async function handleBillingSubmit(e) {
