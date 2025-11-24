@@ -4612,8 +4612,9 @@ function updateDailyRegisterList() {
       // Get all relevant records
       const challanRecords = allRecords.filter(r => r.type === 'challan_book');
       const lrRecords = allRecords.filter(r => r.type === 'booking_lr' || r.type === 'non_booking_lr');
+      const dailyRegisters = allRecords.filter(r => r.type === 'daily_register');
       
-      console.log('Found records - Challan:', challanRecords.length, 'LR:', lrRecords.length);
+      console.log('Found records - Challan:', challanRecords.length, 'LR:', lrRecords.length, 'Daily:', dailyRegisters.length);
       
       // Process each LR entry (since LR has the Total Amount field)
       const allTrips = [];
@@ -4635,16 +4636,34 @@ function updateDailyRegisterList() {
         const tripData = {
           date: lr.lrDate || lr.date || new Date().toLocaleDateString('en-GB'),
           truckNumber: truck,
+          lrNumber: lr.lrNumber || 'N/A',
           companyPartyName: '',
-          truckTotal: 0,     // Total amount paid to truck (from Challan)
+          truckTotal: 0,     // Total amount paid to truck (from Challan) - individual LR's share
           lrTotal: 0,        // Total amount received from company (from LR)
         };
         
         // Get Total Amount from LR (it's in companyRate field)
         tripData.lrTotal = parseFloat(lr.companyRate) || 0;
         
-        // Get company/party name from LR
-        tripData.companyPartyName = lr.companyName || lr.partyName || lr.consignor || 'N/A';
+        // Get company/party name - first try from LR itself
+        tripData.companyPartyName = lr.companyName || lr.partyName || lr.consignorName || '';
+        
+        // If not found, try to get from Daily Register entry
+        if (!tripData.companyPartyName || tripData.companyPartyName === 'N/A') {
+          const dailyEntry = dailyRegisters.find(d => d.__backendId === (lr.dailyEntryId || lr.dailyRegisterId));
+          if (dailyEntry) {
+            // Check for companies array (multiple companies)
+            if (dailyEntry.companies && dailyEntry.companies.length > 0) {
+              const companyNames = dailyEntry.companies
+                .map(c => c.name)
+                .filter(Boolean)
+                .join(', ');
+              tripData.companyPartyName = companyNames || dailyEntry.companyName || 'N/A';
+            } else {
+              tripData.companyPartyName = dailyEntry.companyName || dailyEntry.partyName || 'N/A';
+            }
+          }
+        }
         
         // Find matching Challan entry - MATCH BY dailyEntryId!
         let challan = null;
@@ -4679,15 +4698,59 @@ function updateDailyRegisterList() {
         }
         
         if (challan) {
-          // The Challan has "truckRate" field which contains the total truck amount
-          tripData.truckTotal = parseFloat(challan.truckRate) || 0;
+          // Check if challan has individual LR details (lrDetails array)
+          if (challan.lrDetails && challan.lrDetails.length > 0) {
+            // Find this specific LR's truck amount from the lrDetails array
+            const lrDetail = challan.lrDetails.find(detail => 
+              detail.lrId === lrId || 
+              detail.lrNumber === lr.lrNumber
+            );
+            
+            if (lrDetail) {
+              // Use individual LR's truck amount
+              tripData.truckTotal = parseFloat(lrDetail.amount) || 0;
+              console.log(`✅ Using individual LR amount for ${lr.lrNumber}: ₹${tripData.truckTotal}`);
+            } else {
+              // LR not found in details, calculate proportional share
+              const totalLRsInChallan = challan.lrDetails.length;
+              tripData.truckTotal = (parseFloat(challan.truckRate) || 0) / totalLRsInChallan;
+              console.log(`⚠️ LR ${lr.lrNumber} not in lrDetails, using proportional: ₹${tripData.truckTotal}`);
+            }
+          } else {
+            // Old challan format without lrDetails - check how many LRs share this challan
+            const lrsForThisChallan = lrRecords.filter(r => 
+              (r.dailyEntryId === challan.dailyEntryId) || 
+              (r.truckNumber === challan.truckNumber && (r.lrDate === challan.date || r.date === challan.date))
+            );
+            
+            if (lrsForThisChallan.length > 1) {
+              // Multiple LRs share this challan - divide the truck total
+              tripData.truckTotal = (parseFloat(challan.truckRate) || 0) / lrsForThisChallan.length;
+              console.log(`📊 Dividing challan amount among ${lrsForThisChallan.length} LRs: ₹${tripData.truckTotal} each`);
+            } else {
+              // Single LR - use full challan amount
+              tripData.truckTotal = parseFloat(challan.truckRate) || 0;
+            }
+          }
           
-          // Update company name from challan if not set
+          // Update company name from challan's daily register if still not set
           if (!tripData.companyPartyName || tripData.companyPartyName === 'N/A') {
-            tripData.companyPartyName = challan.companyName || challan.partyName || tripData.companyPartyName;
+            const dailyEntry = dailyRegisters.find(d => d.__backendId === challan.dailyEntryId);
+            if (dailyEntry) {
+              if (dailyEntry.companies && dailyEntry.companies.length > 0) {
+                tripData.companyPartyName = dailyEntry.companies.map(c => c.name).filter(Boolean).join(', ');
+              } else {
+                tripData.companyPartyName = dailyEntry.companyName || dailyEntry.partyName || 'N/A';
+              }
+            }
           }
         } else {
           console.log(`❌ No Challan found for LR truck ${truck}, dailyEntryId: ${lr.dailyEntryId || 'none'}`);
+        }
+        
+        // Final fallback for company name
+        if (!tripData.companyPartyName) {
+          tripData.companyPartyName = 'N/A';
         }
         
         allTrips.push(tripData);
@@ -4739,8 +4802,9 @@ function updateDailyRegisterList() {
           <tr style="border-bottom: 1px solid #e5e7eb;">
             <td style="text-align: center; padding: 12px;">${startIndex + index + 1}</td>
             <td style="font-weight: 600; padding: 12px; color: #4f46e5;">${trip.truckNumber}</td>
+            <td style="padding: 12px;">${trip.lrNumber || 'N/A'}</td>
             <td style="padding: 12px;">${trip.date}</td>
-            <td style="padding: 12px;">${trip.companyPartyName}</td>
+            <td style="padding: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${trip.companyPartyName}">${trip.companyPartyName}</td>
             <td style="text-align: right; font-weight: 600; padding: 12px;">₹${trip.truckTotal.toLocaleString('en-IN')}</td>
             <td style="text-align: right; font-weight: 600; padding: 12px;">₹${trip.lrTotal.toLocaleString('en-IN')}</td>
             <td style="text-align: right; font-weight: bold; padding: 12px; color: ${isProfit ? '#10b981' : '#ef4444'};">
