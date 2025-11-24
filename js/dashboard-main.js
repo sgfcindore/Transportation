@@ -870,19 +870,56 @@ const defaultConfig = {
           // Copy the entire existing entry to preserve all fields
           const data = { ...existingEntry };
           
+          // ============================================
+          // FIX: Collect companies data from form for EDIT too
+          // ============================================
+          const companiesData = [];
+          const companyItems = document.querySelectorAll('.company-item');
+          
+          companyItems.forEach((item, idx) => {
+            const nameSelect = item.querySelector(`select[name="companies[${idx}][name]"]`) || 
+                              item.querySelector('.company-select');
+            const rateInput = item.querySelector(`input[name="companies[${idx}][rate]"]`);
+            const locationInput = item.querySelector(`input[name="companies[${idx}][location]"]`);
+            
+            const companyName = nameSelect ? nameSelect.value : '';
+            const companyRate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
+            const companyLocation = locationInput ? locationInput.value : '';
+            
+            if (companyName) {
+              companiesData.push({
+                name: companyName,
+                rate: companyRate,
+                location: companyLocation
+              });
+            }
+          });
+          
+          console.log('📦 Companies data collected for EDIT:', companiesData);
+          
+          // Calculate total company rate from all companies
+          const totalCompanyRate = companiesData.reduce((sum, c) => sum + (c.rate || 0), 0);
+          
+          // Build display values for backward compatibility
+          const allCompanyNames = companiesData.map(c => c.name).filter(Boolean).join(', ');
+          const allLocations = companiesData.map(c => c.location).filter(Boolean).join(', ');
+          
           // Update only the fields from the form
           data.date = formData.get('date');
           data.truckNumber = formData.get('truckNumber');
           data.truckSize = formData.get('truckSize');
-          data.companyName = formData.get('companyName');
+          // Store companies array
+          data.companies = companiesData;
+          // Also store legacy fields for backward compatibility
+          data.companyName = allCompanyNames || '';
           data.partyName = formData.get('partyName');
           data.from = formData.get('from');
-          data.to = formData.get('to');
+          data.to = allLocations || '';
           data.bookingType = formData.get('bookingType');
           data.typeOfBooking = formData.get('typeOfBooking');
           data.placedBy = formData.get('placedBy');
           data.truckRate = parseFloat(formData.get('truckRate')) || 0;
-          data.companyRate = parseFloat(formData.get('companyRate')) || 0;
+          data.companyRate = totalCompanyRate || 0;
           data.commissionApplicable = commissionApplicable;
           data.commission = commissionAmount;
           data.commissionTakenBy = formData.get('commissionTakenBy') || '';
@@ -1992,9 +2029,19 @@ const defaultConfig = {
         form.truckNumber.value = entry.truckNumber || '';
         form.partyName.value = entry.partyName || '';
         form.from.value = entry.from || '';
-        form.to.value = entry.to || '';
+        
+        // Handle single or multiple destinations
+        if (entry.companies && entry.companies.length > 0) {
+          const destinations = entry.companies.map(c => c.location).filter(Boolean).join(', ');
+          form.to.value = destinations || '';
+        } else {
+          form.to.value = entry.to || '';
+        }
+        
         form.paymentCategory.value = entry.bookingType || '';
         form.dailyEntryId.value = entryId;
+        
+        console.log('✅ Auto-filled Non-Booking LR form from daily register:', entryId);
       }
     }
 
