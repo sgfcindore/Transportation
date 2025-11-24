@@ -4087,22 +4087,6 @@ function updateDailyRegisterList() {
       const startIndex = (paginationState['lr'].currentPage - 1) * paginationState['lr'].itemsPerPage;
 
       tbody.innerHTML = paginatedLRs.map((lr, index) => {
-        // Get the daily register entry to check for multiple companies/locations
-        const dailyEntry = allRecords.find(r => 
-          r.type === 'daily_register' && r.__backendId === (lr.dailyEntryId || lr.dailyRegisterId)
-        );
-        
-        // Build routing display
-        let routingDisplay = '';
-        if (dailyEntry && dailyEntry.companies && dailyEntry.companies.length > 1) {
-          // Multiple destinations
-          const destinations = dailyEntry.companies.map(c => c.location).join(', ');
-          routingDisplay = `${lr.from || 'N/A'} → ${destinations}`;
-        } else {
-          // Single destination
-          routingDisplay = `${lr.from || 'N/A'} → ${lr.to || 'N/A'}`;
-        }
-        
         return `
           <tr>
             <td>${startIndex + index + 1}</td>
@@ -4118,7 +4102,6 @@ function updateDailyRegisterList() {
             <td>${lr.consignorName || 'N/A'}</td>
             <td>${lr.consigneeName || 'N/A'}</td>
             <td>${lr.billingTo || 'N/A'}</td>
-            <td title="${routingDisplay}">${routingDisplay}</td>
             <td>${lr.productName || 'N/A'}</td>
             <td>${lr.weight || 0}T</td>
             <td>₹${(lr.advanceToDriver || 0).toLocaleString()}</td>
