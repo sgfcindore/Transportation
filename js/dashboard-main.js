@@ -4990,9 +4990,16 @@ function updateDailyRegisterList() {
         // Get Total Amount from LR (it's in companyRate field)
         tripData.lrTotal = parseFloat(lr.companyRate) || 0;
         
-        // Get Commission from LR (if applicable)
-        if (lr.commissionApplicable && lr.commission) {
-          tripData.commission = parseFloat(lr.commission) || 0;
+        // Get Commission from Daily Register (commission is NEVER in LR records)
+        // Commission is always stored in the Daily Register entry
+        if (lr.dailyEntryId || lr.dailyRegisterId) {
+          const dailyEntry = dailyRegisters.find(d => d.__backendId === (lr.dailyEntryId || lr.dailyRegisterId));
+          if (dailyEntry && dailyEntry.commissionApplicable && dailyEntry.commission) {
+            tripData.commission = parseFloat(dailyEntry.commission) || 0;
+            if (tripData.commission > 0) {
+              console.log(`💰 Commission ₹${tripData.commission} from Daily Register for LR ${lr.lrNumber}`);
+            }
+          }
         }
         
         // Get company/party name - first try from LR itself
