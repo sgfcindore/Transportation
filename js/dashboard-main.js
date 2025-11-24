@@ -876,12 +876,12 @@ const defaultConfig = {
           const companiesData = [];
           const companyItems = document.querySelectorAll('.company-item');
           
-          companyItems.forEach((item, idx) => {
-            const nameSelect = item.querySelector(`select[name="companies[${idx}][name]"]`) || 
-                              item.querySelector('.company-select');
-            const rateInput = item.querySelector(`input[name="companies[${idx}][rate]"]`);
-            const locationInput = item.querySelector(`input[name="companies[${idx}][location]"]`);
-            
+          companyItems.forEach((item) => {
+  // Use // Use attribute selectors that work regardless of index
+  const nameSelect = item.querySelector('select[name^="companies"][name$="[name]"]') || 
+                    item.querySelector('.company-select');
+  const rateInput = item.querySelector('input[name^="companies"][name$="[rate]"]');
+  const locationInput = item.querySelector('input[name^="companies"][name$="[location]"]');
             const companyName = nameSelect ? nameSelect.value : '';
             const companyRate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
             const companyLocation = locationInput ? locationInput.value : '';
@@ -959,11 +959,12 @@ const defaultConfig = {
         const companiesData = [];
         const companyItems = document.querySelectorAll('.company-item');
         
-        companyItems.forEach((item, idx) => {
-          const nameSelect = item.querySelector(`select[name="companies[${idx}][name]"]`) || 
-                            item.querySelector('.company-select');
-          const rateInput = item.querySelector(`input[name="companies[${idx}][rate]"]`);
-          const locationInput = item.querySelector(`input[name="companies[${idx}][location]"]`);
+        companyItems.forEach((item) => {
+  // Use attribute selectors that work regardless of index  
+  const nameSelect = item.querySelector('select[name^="companies"][name$="[name]"]') || 
+                    item.querySelector('.company-select');
+  const rateInput = item.querySelector('input[name^="companies"][name$="[rate]"]');
+  const locationInput = item.querySelector('input[name^="companies"][name$="[location]"]');
           
           const companyName = nameSelect ? nameSelect.value : '';
           const companyRate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
