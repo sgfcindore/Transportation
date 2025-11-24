@@ -6983,50 +6983,72 @@ function updateDailyRegisterList() {
     }
 
     function updatePaymentSummary() {
-      const payments = allRecords.filter(r => r.type === 'payment_transaction');
-      
-      let totalReceivables = 0;
-      let totalPayables = 0;
-      let totalAdvancesGiven = 0;
-      let totalAdvancesReceived = 0;
+  const payments = allRecords.filter(r => r.type === 'payment_transaction');
+  
+  let totalReceivables = 0;
+  let totalPayables = 0;
+  let totalAdvancesGiven = 0;
+  let totalAdvancesReceived = 0;
 
-      // Calculate from daily entries
-      const dailyEntries = allRecords.filter(r => r.type === 'daily_register');
-      dailyEntries.forEach(entry => {
-        const companyRate = entry.companyRate || 0;
-        const truckRate = entry.truckRate || 0;
-        
-        // Receivables (what we need to collect from company/party)
-        totalReceivables += companyRate;
-        
-        // Payables (what we need to pay to truck owner)
-        totalPayables += truckRate;
-      });
+  // FIX: Calculate Receivables from LRs (not daily entries)
+  const lrRecords = allRecords.filter(r => 
+    (r.type === 'booking_lr' || r.type === 'non_booking_lr')
+  );
+  
+  lrRecords.forEach(lr => {
+    const lrAmount = parseFloat(lr.companyRate) || 0;
+    totalReceivables += lrAmount;
+  });
 
-      // Calculate advances from payments
-      payments.forEach(payment => {
-        const amount = payment.paymentAmount || 0;
-        
-        if (payment.paymentType === 'Advance from Company' || payment.paymentType === 'Advance from Party') {
-          totalAdvancesReceived += amount;
-        }
-        if (payment.paymentType === 'Balance from Company' || payment.paymentType === 'Balance from Party') {
-          totalReceivables -= amount; // Reduce receivables by balance received
-        }
-        if (payment.paymentType === 'Advance to Owner') {
-          totalAdvancesGiven += amount;
-        }
-        if (payment.paymentType === 'Balance to Owner') {
-          totalPayables -= amount; // Reduce payables by balance paid
-        }
-      });
+  // FIX: Calculate Payables from Challans (not daily entries)
+  const challanRecords = allRecords.filter(r => r.type === 'challan_book');
+  
+  challanRecords.forEach(challan => {
+    const challanAmount = parseFloat(challan.remainingBalance) || parseFloat(challan.truckRate) || 0;
+    totalPayables += challanAmount;
+  });
 
-      // Update dashboard cards
-      document.getElementById('ptTotalReceivables').textContent = `₹${Math.max(0, totalReceivables).toLocaleString()}`;
-      document.getElementById('ptTotalPayables').textContent = `₹${Math.max(0, totalPayables).toLocaleString()}`;
-      document.getElementById('ptTotalAdvancesGiven').textContent = `₹${totalAdvancesGiven.toLocaleString()}`;
-      document.getElementById('ptTotalAdvancesReceived').textContent = `₹${totalAdvancesReceived.toLocaleString()}`;
+  // Calculate payments received and paid
+  payments.forEach(payment => {
+    const amount = parseFloat(payment.paymentAmount) || 0;
+    
+    if (payment.paymentType === 'Advance from Company' || payment.paymentType === 'Advance from Party') {
+      totalAdvancesReceived += amount;
+      totalReceivables -= amount;
     }
+    if (payment.paymentType === 'Balance from Company' || payment.paymentType === 'Balance from Party') {
+      totalReceivables -= amount;
+    }
+    if (payment.paymentType === 'Advance to Owner') {
+      totalAdvancesGiven += amount;
+      totalPayables -= amount;
+    }
+    if (payment.paymentType === 'Balance to Owner') {
+      totalPayables -= amount;
+    }
+  });
+
+  // Update dashboard cards
+  const ptTotalReceivables = document.getElementById('ptTotalReceivables');
+  if (ptTotalReceivables) {
+    ptTotalReceivables.textContent = `₹${Math.max(0, totalReceivables).toLocaleString()}`;
+  }
+  
+  const ptTotalPayables = document.getElementById('ptTotalPayables');
+  if (ptTotalPayables) {
+    ptTotalPayables.textContent = `₹${Math.max(0, totalPayables).toLocaleString()}`;
+  }
+  
+  const ptTotalAdvancesGiven = document.getElementById('ptTotalAdvancesGiven');
+  if (ptTotalAdvancesGiven) {
+    ptTotalAdvancesGiven.textContent = `₹${totalAdvancesGiven.toLocaleString()}`;
+  }
+  
+  const ptTotalAdvancesReceived = document.getElementById('ptTotalAdvancesReceived');
+  if (ptTotalAdvancesReceived) {
+    ptTotalAdvancesReceived.textContent = `₹${totalAdvancesReceived.toLocaleString()}`;
+  }
+}
 
     function updatePaymentTransactionsList() {
       const tbody = document.getElementById('paymentTransactionsList');
@@ -7243,8 +7265,196 @@ ${payment.paymentNotes || 'No additional notes'}
     }
     
     function applyPendingPaymentsFilter() {
-      const dailyEntries = allRecords.filter(r => r.type === 'daily_register');
-      const payments = allRecords.filter(r => r.type === 'payment_transaction');
+  const payments = allRecords.filter(r => r.type === 'payment_transaction');
+  
+  // Get filter values
+  const paymentTypeFilter = document.getElementById('pendingPaymentTypeFilter')?.value || 'all';
+  const companyPartyFilter = (document.getElementById('pendingCompanyPartyFilter')?.value || '').toLowerCase().trim();
+  const truckFilter = (document.getElementById('pendingTruckFilter')?.value || '').toLowerCase().trim();
+  
+  const pendingReceivables = [];
+  const pendingPayables = [];
+
+  // FIX: Get ALL LRs for Outstanding Receivables
+  const lrRecords = allRecords.filter(r => 
+    (r.type === 'booking_lr' || r.type === 'non_booking_lr')
+  );
+  
+  lrRecords.forEach(lr => {
+    const lrId = lr.__backendId || lr.__firebaseId;
+    const totalAmount = parseFloat(lr.companyRate) || 0;
+    
+    if (totalAmount <= 0) return;
+    
+    // Calculate received amount for this LR
+    const receivedAmount = payments
+      .filter(p => 
+        (p.entryId === lrId || p.lrId === lrId || p.lrNumber === lr.lrNumber) && 
+        (p.paymentType === 'Advance from Company' || 
+         p.paymentType === 'Balance from Company' ||
+         p.paymentType === 'Advance from Party' || 
+         p.paymentType === 'Balance from Party'))
+      .reduce((sum, p) => sum + (parseFloat(p.paymentAmount) || 0), 0);
+    
+    const outstanding = totalAmount - receivedAmount;
+    
+    if (outstanding > 0) {
+      const companyName = lr.companyName || lr.partyName || lr.consignorName || 'N/A';
+      const truckNumber = lr.truckNumber || '';
+      
+      const matchesCompanyParty = !companyPartyFilter || companyName.toLowerCase().includes(companyPartyFilter);
+      const matchesTruck = !truckFilter || truckNumber.toLowerCase().includes(truckFilter);
+      const matchesType = paymentTypeFilter === 'all' || paymentTypeFilter === 'receivables';
+      
+      if (matchesCompanyParty && matchesTruck && matchesType) {
+        pendingReceivables.push({
+          id: lrId,
+          truck: truckNumber,
+          company: companyName,
+          date: lr.lrDate || lr.date || '',
+          lrNumber: lr.lrNumber || 'N/A',
+          from: lr.from || '',
+          to: lr.to || '',
+          totalAmount: totalAmount,
+          received: receivedAmount,
+          amount: outstanding,
+          type: lr.type === 'booking_lr' ? 'Booking LR' : 'Non-Booking LR'
+        });
+      }
+    }
+  });
+
+  // FIX: Get ALL Challans for Outstanding Payables
+  const challanRecords = allRecords.filter(r => r.type === 'challan_book');
+  
+  challanRecords.forEach(challan => {
+    const challanId = challan.__backendId || challan.__firebaseId;
+    const totalAmount = parseFloat(challan.remainingBalance) || parseFloat(challan.truckRate) || 0;
+    
+    if (totalAmount <= 0) return;
+    
+    // Calculate paid amount for this Challan
+    const paidAmount = payments
+      .filter(p => 
+        (p.entryId === challanId || p.challanId === challanId || p.challanNumber === challan.challanNumber) && 
+        (p.paymentType === 'Advance to Owner' || 
+         p.paymentType === 'Balance to Owner'))
+      .reduce((sum, p) => sum + (parseFloat(p.paymentAmount) || 0), 0);
+    
+    const outstanding = totalAmount - paidAmount;
+    
+    if (outstanding > 0) {
+      const truckMaster = allRecords.find(r => r.type === 'truck_master' && r.truckNumber === challan.truckNumber);
+      const ownerName = truckMaster?.truckOwner || challan.truckOwner || challan.partyName || 'N/A';
+      const truckNumber = challan.truckNumber || '';
+      const partyName = challan.partyName || '';
+      
+      const matchesCompanyParty = !companyPartyFilter || 
+                                 ownerName.toLowerCase().includes(companyPartyFilter) ||
+                                 partyName.toLowerCase().includes(companyPartyFilter);
+      const matchesTruck = !truckFilter || truckNumber.toLowerCase().includes(truckFilter);
+      const matchesType = paymentTypeFilter === 'all' || paymentTypeFilter === 'payables';
+      
+      if (matchesCompanyParty && matchesTruck && matchesType) {
+        pendingPayables.push({
+          id: challanId,
+          truck: truckNumber,
+          owner: ownerName,
+          party: partyName,
+          date: challan.date || '',
+          challanNumber: challan.challanNumber || 'N/A',
+          from: challan.from || '',
+          to: challan.to || '',
+          totalAmount: totalAmount,
+          paid: paidAmount,
+          amount: outstanding,
+          lrNumbers: challan.lrNumbers || ''
+        });
+      }
+    }
+  });
+
+  // Update Receivables List UI
+  const receivablesList = document.getElementById('filteredReceivablesList');
+  if (receivablesList) {
+    if (pendingReceivables.length === 0) {
+      receivablesList.innerHTML = '<p class="text-sm text-gray-500">No outstanding receivables found</p>';
+    } else {
+      receivablesList.innerHTML = pendingReceivables.map(item => `
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-2">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="font-semibold text-sm text-green-800">${item.company}</div>
+              <div class="text-xs text-gray-600 mt-1 space-y-0.5">
+                <div><strong>Truck:</strong> ${item.truck}</div>
+                <div><strong>LR Number:</strong> ${item.lrNumber} <span class="text-blue-600">(${item.type})</span></div>
+                <div><strong>Route:</strong> ${item.from} → ${item.to}</div>
+                <div><strong>Date:</strong> ${item.date}</div>
+                <div class="mt-1 pt-1 border-t border-green-200">
+                  <span class="text-gray-500">Total: ₹${item.totalAmount.toLocaleString()}</span>
+                  ${item.received > 0 ? ` | <span class="text-green-600">Received: ₹${item.received.toLocaleString()}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-green-700 text-lg">₹${item.amount.toLocaleString()}</div>
+              <div class="text-xs text-gray-500">Outstanding</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Update Payables List UI
+  const payablesList = document.getElementById('filteredPayablesList');
+  if (payablesList) {
+    if (pendingPayables.length === 0) {
+      payablesList.innerHTML = '<p class="text-sm text-gray-500">No outstanding payables found</p>';
+    } else {
+      payablesList.innerHTML = pendingPayables.map(item => `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-2">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="font-semibold text-sm text-red-800">${item.owner}</div>
+              <div class="text-xs text-gray-600 mt-1 space-y-0.5">
+                <div><strong>Truck:</strong> ${item.truck}</div>
+                <div><strong>Challan:</strong> ${item.challanNumber}</div>
+                ${item.lrNumbers ? `<div><strong>LR Numbers:</strong> ${item.lrNumbers}</div>` : ''}
+                ${item.party ? `<div><strong>Party:</strong> ${item.party}</div>` : ''}
+                <div><strong>Route:</strong> ${item.from} → ${item.to}</div>
+                <div><strong>Date:</strong> ${item.date}</div>
+                <div class="mt-1 pt-1 border-t border-red-200">
+                  <span class="text-gray-500">Total: ₹${item.totalAmount.toLocaleString()}</span>
+                  ${item.paid > 0 ? ` | <span class="text-red-600">Paid: ₹${item.paid.toLocaleString()}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-red-700 text-lg">₹${item.amount.toLocaleString()}</div>
+              <div class="text-xs text-gray-500">Outstanding</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+  
+  // Update Results Count
+  const resultsCount = document.getElementById('pendingResultsCount');
+  if (resultsCount) {
+    const totalReceivablesAmount = pendingReceivables.reduce((sum, item) => sum + item.amount, 0);
+    const totalPayablesAmount = pendingPayables.reduce((sum, item) => sum + item.amount, 0);
+    
+    resultsCount.innerHTML = `
+      <span class="font-semibold">${pendingReceivables.length + pendingPayables.length} results</span>
+      <span class="text-gray-500 mx-2">|</span>
+      <span class="text-green-600">${pendingReceivables.length} receivables (₹${totalReceivablesAmount.toLocaleString()})</span>
+      <span class="text-gray-500 mx-2">|</span>
+      <span class="text-red-600">${pendingPayables.length} payables (₹${totalPayablesAmount.toLocaleString()})</span>
+    `;
+  }
+}
       
       // Get filter values
       const paymentTypeFilter = document.getElementById('pendingPaymentTypeFilter')?.value || 'all';
