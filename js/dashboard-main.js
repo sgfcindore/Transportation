@@ -3624,9 +3624,34 @@ function populateDailyEntrySelect() {
               onchange="handleSort('${listName}', document.getElementById('${listName}SortBy').value, this.value)"
               class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
             >
-              <option value="desc" ${searchSortState[listName]?.sortOrder === 'desc' ? 'selected' : ''}>Newest First</option>
-              <option value="asc" ${searchSortState[listName]?.sortOrder === 'asc' ? 'selected' : ''}>Oldest First</option>
+              <option value="desc" ${searchSortState[listName]?.sortOrder === 'desc' ? 'selected' : ''}>
+                <span class="date-label">Newest First</span>
+                <span class="number-label" style="display:none">Descending (High to Low)</span>
+              </option>
+              <option value="asc" ${searchSortState[listName]?.sortOrder === 'asc' ? 'selected' : ''}>
+                <span class="date-label">Oldest First</span>
+                <span class="number-label" style="display:none">Ascending (Low to High)</span>
+              </option>
             </select>
+            <script>
+              (function() {
+                const sortBy = document.getElementById('${listName}SortBy');
+                const sortOrder = document.getElementById('${listName}SortOrder');
+                function updateOrderLabels() {
+                  const isDateSort = sortBy.value.includes('Date') || sortBy.value === 'date';
+                  const options = sortOrder.options;
+                  if (isDateSort) {
+                    options[0].text = 'Newest First';
+                    options[1].text = 'Oldest First';
+                  } else {
+                    options[0].text = 'Descending (High to Low)';
+                    options[1].text = 'Ascending (Low to High)';
+                  }
+                }
+                sortBy.addEventListener('change', updateOrderLabels);
+                updateOrderLabels();
+              })();
+            </script>
             <button 
               onclick="clearSearchSort('${listName}')" 
               class="px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg"
