@@ -5413,15 +5413,67 @@ function updateDailyRegisterList() {
         return;
       }
 
-      // Sort by LR number
-      bookingLRs.sort((a, b) => {
-        const lrA = parseInt(a.lrNumber) || 0;
-        const lrB = parseInt(b.lrNumber) || 0;
-        return lrA - lrB;
+      // Inject search/sort controls if not exists
+      const tableContainer = tbody?.closest('.card') || tbody?.parentElement?.parentElement;
+      if (tableContainer && !document.getElementById('gst-search-controls')) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'gst-search-controls';
+        controlsDiv.innerHTML = createSearchSortControls('gst', '🔍 Search by LR No, Truck No, Consignor...', [
+          { value: 'lrDate', label: 'Date' },
+          { value: 'lrNumber', label: 'LR Number' }
+        ]);
+        const tableWrapper = tbody?.closest('.table-container') || tbody?.parentElement;
+        if (tableWrapper) {
+          tableWrapper.parentElement.insertBefore(controlsDiv, tableWrapper);
+        }
+      }
+
+      // Apply search filter
+      let filteredLRs = bookingLRs.filter(lr => {
+        const state = searchSortState['gst'];
+        if (!state || !state.searchTerm) return true;
+        const searchTerm = state.searchTerm.toLowerCase();
+        return (
+          (lr.lrNumber && lr.lrNumber.toString().toLowerCase().includes(searchTerm)) ||
+          (lr.truckNumber && lr.truckNumber.toLowerCase().includes(searchTerm)) ||
+          (lr.consignorName && lr.consignorName.toLowerCase().includes(searchTerm)) ||
+          (lr.consigneeName && lr.consigneeName.toLowerCase().includes(searchTerm)) ||
+          (lr.from && lr.from.toLowerCase().includes(searchTerm)) ||
+          (lr.to && lr.to.toLowerCase().includes(searchTerm))
+        );
       });
 
+      // Apply sort
+      const sortState = searchSortState['gst'];
+      if (sortState) {
+        filteredLRs.sort((a, b) => {
+          let aVal, bVal;
+          if (sortState.sortBy === 'lrDate') {
+            aVal = parseDate(a.lrDate);
+            bVal = parseDate(b.lrDate);
+          } else if (sortState.sortBy === 'lrNumber') {
+            aVal = parseInt(String(a.lrNumber).replace(/\D/g, '')) || 0;
+            bVal = parseInt(String(b.lrNumber).replace(/\D/g, '')) || 0;
+          } else {
+            aVal = String(a[sortState.sortBy] || '').toLowerCase();
+            bVal = String(b[sortState.sortBy] || '').toLowerCase();
+          }
+          if (aVal < bVal) return sortState.sortOrder === 'asc' ? -1 : 1;
+          if (aVal > bVal) return sortState.sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      if (filteredLRs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-500 py-8">No results found</td></tr>';
+        // Remove pagination if exists
+        const paginationDiv = document.getElementById('gst-pagination');
+        if (paginationDiv) paginationDiv.remove();
+        return;
+      }
+
       // PAGINATION: Get only current page data
-      const paginatedLRs = getPaginatedData(bookingLRs, 'gst');
+      const paginatedLRs = getPaginatedData(filteredLRs, 'gst');
       const startIndex = (paginationState['gst'].currentPage - 1) * paginationState['gst'].itemsPerPage;
 
       // Render table with paginated data
@@ -5445,7 +5497,7 @@ function updateDailyRegisterList() {
       `).join('');
 
       // PAGINATION: Add controls after the table
-      const paginationHTML = createPaginationControls('gst', bookingLRs.length);
+      const paginationHTML = createPaginationControls('gst', filteredLRs.length);
       let paginationDiv = document.getElementById('gst-pagination');
       if (!paginationDiv) {
         paginationDiv = document.createElement('div');
@@ -5454,8 +5506,8 @@ function updateDailyRegisterList() {
       }
       paginationDiv.innerHTML = paginationHTML;
 
-      // Update summary (use all records, not just paginated ones)
-      updateGSTSummary(bookingLRs);
+      // Update summary (use all filtered records, not just paginated ones)
+      updateGSTSummary(filteredLRs);
     }
 
     function updateGSTSummary(records) {
