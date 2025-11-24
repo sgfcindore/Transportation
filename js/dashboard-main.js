@@ -3853,7 +3853,7 @@ function populateDailyEntrySelect() {
       }
     }
 
-    function updateDailyRegisterList() {
+function updateDailyRegisterList() {
       const tbody = document.getElementById('dailyRegisterList');
       const entries = allRecords.filter(r => r.type === 'daily_register');
       
@@ -3874,21 +3874,49 @@ function populateDailyEntrySelect() {
         const commTakenBy = entry.commissionTakenBy || 'N/A';
         const commStatus = entry.commissionStatus || 'N/A';
         
+        // ============================================
+        // FIX: Build company names display
+        // ============================================
+        let companyDisplay = '';
+        if (entry.companies && entry.companies.length > 0) {
+          // Multiple companies - show all names
+          const companyNames = entry.companies
+            .map(c => c.name)
+            .filter(Boolean)
+            .join(', ');
+          companyDisplay = companyNames || 'N/A';
+        } else {
+          // Single company (legacy format)
+          companyDisplay = entry.companyName || 'N/A';
+        }
+        
+        // ============================================
+        // FIX: Build routing display (FROM → TO)
+        // ============================================
+        let routingDisplay = '';
+        const fromLocation = entry.from || 'N/A';
+        
+        if (entry.companies && entry.companies.length > 0) {
+          // Multiple destinations - show all locations
+          const destinations = entry.companies
+            .map(c => c.location)
+            .filter(Boolean)
+            .join(', ');
+          routingDisplay = `${fromLocation} → ${destinations || 'N/A'}`;
+        } else {
+          // Single destination (legacy format)
+          routingDisplay = `${fromLocation} → ${entry.to || 'N/A'}`;
+        }
+        
         // Find all LRs linked to this daily entry
-        // First try by dailyEntryId (new way), then fallback to matching by truck number and date
         const linkedLRs = allRecords.filter(r => {
           if (r.type !== 'booking_lr' && r.type !== 'non_booking_lr') return false;
           
-          // First check if linked by dailyEntryId (for newly created LRs)
           if (r.dailyEntryId === entry.__backendId) return true;
           
-          // Fallback: match by truck number and date (for existing LRs)
-          // Check if truck numbers match and dates are the same
           if (r.truckNumber && entry.truckNumber && 
               r.truckNumber.toLowerCase() === entry.truckNumber.toLowerCase()) {
-            // Also check if the LR date matches the daily register date
             if (r.lrDate && entry.date) {
-              // Compare dates (handle potential format differences)
               const lrDate = new Date(r.lrDate).toDateString();
               const entryDate = new Date(entry.date).toDateString();
               if (lrDate === entryDate) return true;
@@ -3900,7 +3928,6 @@ function populateDailyEntrySelect() {
         
         const lrCount = linkedLRs.length;
         
-        // Calculate To Pay and To Be Billed LR counts
         let toPayCount = 0;
         let toBeBilledCount = 0;
         if (linkedLRs.length > 0) {
@@ -3923,8 +3950,8 @@ function populateDailyEntrySelect() {
             <td>${entry.date || 'N/A'}</td>
             <td>${entry.truckNumber || 'N/A'}</td>
             <td>${entry.truckSize || 'N/A'}</td>
-            <td>${entry.companyName || 'N/A'}</td>
-            <td>${entry.from || 'N/A'} → ${entry.to || 'N/A'}</td>
+            <td title="${companyDisplay}">${companyDisplay}</td>
+            <td title="${routingDisplay}">${routingDisplay}</td>
             <td>${entry.bookingType || 'N/A'}</td>
             <td>${entry.typeOfBooking || 'N/A'}</td>
             <td>${entry.placedBy || 'N/A'}</td>
