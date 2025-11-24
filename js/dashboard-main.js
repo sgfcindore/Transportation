@@ -916,59 +916,20 @@ const defaultConfig = {
         }
         // END OF DUPLICATE CHECK
       
-      // CREATE new entry
-      
-      // ============================================
-      // FIX: Collect companies data from form
-      // ============================================
-      const companiesData = [];
-      const companyItems = document.querySelectorAll('.company-item');
-      
-      companyItems.forEach((item, idx) => {
-        const nameSelect = item.querySelector(`select[name="companies[${idx}][name]"]`) || 
-                          item.querySelector('.company-select');
-        const rateInput = item.querySelector(`input[name="companies[${idx}][rate]"]`);
-        const locationInput = item.querySelector(`input[name="companies[${idx}][location]"]`);
-        
-        const companyName = nameSelect ? nameSelect.value : '';
-        const companyRate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
-        const companyLocation = locationInput ? locationInput.value : '';
-        
-        if (companyName) {
-          companiesData.push({
-            name: companyName,
-            rate: companyRate,
-            location: companyLocation
-          });
-        }
-      });
-      
-      console.log('📦 Companies data collected:', companiesData);
-      
-      // Calculate total company rate from all companies
-      const totalCompanyRate = companiesData.reduce((sum, c) => sum + (c.rate || 0), 0);
-      
-      // Build display values for backward compatibility
-      const allCompanyNames = companiesData.map(c => c.name).filter(Boolean).join(', ');
-      const allLocations = companiesData.map(c => c.location).filter(Boolean).join(', ');
-      
-      const data = {
-        type: 'daily_register',
-        date: formData.get('date'),
-        truckNumber: formData.get('truckNumber'),
-        truckSize: formData.get('truckSize'),
-        // Store companies array for multiple companies
-        companies: companiesData,
-        // Also store legacy fields for backward compatibility
-        companyName: allCompanyNames || formData.get('companyName') || '',
-        partyName: formData.get('partyName'),
-        from: formData.get('from'),
-        to: allLocations || formData.get('to') || '',
-        bookingType: formData.get('bookingType'),
-        typeOfBooking: formData.get('typeOfBooking'),
-        placedBy: formData.get('placedBy'),
-        truckRate: parseFloat(formData.get('truckRate')) || 0,
-        companyRate: totalCompanyRate || parseFloat(formData.get('companyRate')) || 0,
+        const data = {
+          type: 'daily_register',
+          date: formData.get('date'),
+          truckNumber: formData.get('truckNumber'),
+          truckSize: formData.get('truckSize'),
+          companyName: formData.get('companyName'),
+          partyName: formData.get('partyName'),
+          from: formData.get('from'),
+          to: formData.get('to'),
+          bookingType: formData.get('bookingType'),
+          typeOfBooking: formData.get('typeOfBooking'),
+          placedBy: formData.get('placedBy'),
+          truckRate: parseFloat(formData.get('truckRate')) || 0,
+          companyRate: parseFloat(formData.get('companyRate')) || 0,
           commissionApplicable: commissionApplicable,
           commission: commissionAmount,
           commissionTakenBy: formData.get('commissionTakenBy') || '',
@@ -3908,39 +3869,10 @@ function updateDailyRegisterList() {
       const paginatedEntries = getPaginatedData(entries, 'dailyRegister');
       const startIndex = (paginationState['dailyRegister'].currentPage - 1) * paginationState['dailyRegister'].itemsPerPage;
 
-      // ============================================
-        // FIX: Build company names display
-        // ============================================
-        let companyDisplay = '';
-        if (entry.companies && entry.companies.length > 0) {
-          // Multiple companies - show all names
-          const companyNames = entry.companies
-            .map(c => c.name)
-            .filter(Boolean)
-            .join(', ');
-          companyDisplay = companyNames || 'N/A';
-        } else {
-          // Single company (legacy format)
-          companyDisplay = entry.companyName || 'N/A';
-        }
-        
-        // ============================================
-        // FIX: Build routing display (FROM → TO)
-        // ============================================
-        let routingDisplay = '';
-        const fromLocation = entry.from || 'N/A';
-        
-        if (entry.companies && entry.companies.length > 0) {
-          // Multiple destinations - show all locations
-          const destinations = entry.companies
-            .map(c => c.location)
-            .filter(Boolean)
-            .join(', ');
-          routingDisplay = `${fromLocation} → ${destinations || 'N/A'}`;
-        } else {
-          // Single destination (legacy format)
-          routingDisplay = `${fromLocation} → ${entry.to || 'N/A'}`;
-        }
+      tbody.innerHTML = paginatedEntries.map((entry, index) => {
+        const commAmt = entry.commission || 0;
+        const commTakenBy = entry.commissionTakenBy || 'N/A';
+        const commStatus = entry.commissionStatus || 'N/A';
         
         // ============================================
         // FIX: Build company names display
@@ -3977,20 +3909,14 @@ function updateDailyRegisterList() {
         }
         
         // Find all LRs linked to this daily entry
-        // First try by dailyEntryId (new way), then fallback to matching by truck number and date
         const linkedLRs = allRecords.filter(r => {
           if (r.type !== 'booking_lr' && r.type !== 'non_booking_lr') return false;
           
-          // First check if linked by dailyEntryId (for newly created LRs)
           if (r.dailyEntryId === entry.__backendId) return true;
           
-          // Fallback: match by truck number and date (for existing LRs)
-          // Check if truck numbers match and dates are the same
           if (r.truckNumber && entry.truckNumber && 
               r.truckNumber.toLowerCase() === entry.truckNumber.toLowerCase()) {
-            // Also check if the LR date matches the daily register date
             if (r.lrDate && entry.date) {
-              // Compare dates (handle potential format differences)
               const lrDate = new Date(r.lrDate).toDateString();
               const entryDate = new Date(entry.date).toDateString();
               if (lrDate === entryDate) return true;
@@ -4002,7 +3928,6 @@ function updateDailyRegisterList() {
         
         const lrCount = linkedLRs.length;
         
-        // Calculate To Pay and To Be Billed LR counts
         let toPayCount = 0;
         let toBeBilledCount = 0;
         if (linkedLRs.length > 0) {
