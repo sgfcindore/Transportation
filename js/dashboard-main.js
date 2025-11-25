@@ -5506,8 +5506,8 @@ function updateDailyRegisterList() {
 
       // Render table with paginated data
       tbody.innerHTML = paginatedLRs.map((record, index) => {
-        // Determine type badge styling
-        const lrType = record.typeOfBooking || 'To Be Billed';
+        // Determine type badge styling - use lrType field (correct field name)
+        const lrType = record.lrType || 'To Be Billed';
         const isToPayType = lrType === 'To Pay';
         const typeBadgeClass = isToPayType 
           ? 'bg-orange-100 text-orange-800' 
