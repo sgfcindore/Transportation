@@ -3303,260 +3303,442 @@ function populateDailyEntrySelect() {
         accounts.map(a => `<option value="${a}">${a}</option>`).join('');
     }
 
-    function viewLedger() {
-      const type = document.getElementById('ledgerType').value;
-      const account = document.getElementById('ledgerAccount').value;
+    // ============================================================================
+// ENHANCED LEDGER SYSTEM with Billing To routing and To Pay exclusion
+// ============================================================================
 
-      if (!type || !account) {
-        showInlineMessage('Please select ledger type and account', 'error');
-        return;
-      }
+function viewLedger() {
+  const type = document.getElementById('ledgerType').value;
+  const account = document.getElementById('ledgerAccount').value;
 
-      let transactions = [];
-      let accountName = account;
-      let totalReceivable = 0;
-      let totalPayable = 0;
+  if (!type || !account) {
+    showInlineMessage('Please select ledger type and account', 'error');
+    return;
+  }
 
-      if (type === 'company') {
-        // FIXED: Company Ledger - Shows LRs as receivables AND payment transactions as receipts
-        const bookingLRs = allRecords.filter(r => r.type === 'booking_lr' && r.companyName === account);
-        
-        // Add LRs as receivables (debit)
-        transactions = bookingLRs.map(lr => {
-          const debit = lr.companyRate || 0;
-          totalReceivable += debit;
-          
-          return {
-            date: lr.lrDate || lr.date,
-            description: `Booking LR - ${lr.from} to ${lr.to}`,
-            refNo: lr.lrNumber,
-            truckNo: lr.truckNumber,
-            debit: debit,
-            credit: 0
-          };
-        });
-        
-        // FIXED: Add payment transactions from companies as receipts (credit)
-        const companyPayments = allRecords.filter(r => 
-          r.type === 'payment_transaction' && 
-          r.companyName === account &&
-          (r.paymentType === 'Advance from Company' || r.paymentType === 'Balance from Company')
-        );
-        
-        companyPayments.forEach(payment => {
-          const credit = payment.paymentAmount || 0;
-          totalPayable += credit;
-          
-          transactions.push({
-            date: payment.paymentDate,
-            description: `Payment Received - ${payment.paymentMode}${payment.tdsAmount ? ' (TDS: ₹' + payment.tdsAmount.toLocaleString() + ')' : ''}`,
-            refNo: payment.paymentReference || 'Payment',
-            truckNo: payment.truckNumber || '-',
-            debit: 0,
-            credit: credit
-          });
-        });
-        
-      } else if (type === 'party') {
-        // FIXED: Party ledger - Shows bills as receivables AND payment transactions as receipts
-        const nonBookingLRs = allRecords.filter(r => r.type === 'non_booking_lr' && r.partyName === account);
-        const bookingLRs = allRecords.filter(r => r.type === 'booking_lr' && r.partyName === account);
-        
-        // Add bills as receivables (debit)
-        transactions = [...nonBookingLRs.filter(lr => lr.billNumber).map(lr => {
-          const debit = (lr.billAmount || 0) + (lr.gstAmount || 0);
-          totalReceivable += debit;
-          
-          return {
-            date: lr.billDate || lr.lrDate || lr.date,
-            description: `Bill ${lr.billNumber} - ${lr.from} to ${lr.to}`,
-            refNo: lr.billNumber,
-            truckNo: lr.truckNumber,
-            debit: debit,
-            credit: 0
-          };
-        }), ...bookingLRs.filter(lr => lr.billNumber).map(lr => {
-          const debit = (lr.billAmount || 0) + (lr.gstAmount || 0);
-          totalReceivable += debit;
-          
-          return {
-            date: lr.billDate || lr.lrDate || lr.date,
-            description: `Bill ${lr.billNumber} - ${lr.from} to ${lr.to}`,
-            refNo: lr.billNumber,
-            truckNo: lr.truckNumber,
-            debit: debit,
-            credit: 0
-          };
-        })];
-        
-        // FIXED: Add payment transactions from parties as receipts (credit)
-        const partyPayments = allRecords.filter(r => 
-          r.type === 'payment_transaction' && 
-          r.partyName === account
-        );
-        
-        partyPayments.forEach(payment => {
-          const credit = payment.paymentAmount || 0;
-          totalPayable += credit;
-          
-          transactions.push({
-            date: payment.paymentDate,
-            description: `Payment Received - ${payment.paymentMode}${payment.tdsAmount ? ' (TDS: ₹' + payment.tdsAmount.toLocaleString() + ')' : ''}`,
-            refNo: payment.paymentReference || 'Payment',
-            truckNo: payment.truckNumber || '-',
-            debit: 0,
-            credit: credit
-          });
-        });
-        
-      } else if (type === 'truck') {
-        // FIXED: Truck ledger - Shows challan amounts as payables AND all payments as debits
-        const truckNumber = account.split(' - ')[0];
-        const challanEntries = allRecords.filter(r => r.type === 'challan_book' && r.truckNumber === truckNumber);
-        
-        // Add challans as payables (credit = what we owe)
-        transactions = challanEntries.map(ch => {
-          const credit = ch.truckRate || 0;
-          const advanceInChallan = ch.advancePaidToOwner || 0;
-          totalPayable += credit;
-          
-          // If advance was paid during challan creation, show it as a debit transaction
-          if (advanceInChallan > 0) {
-            totalReceivable += advanceInChallan;
-          }
-          
-          return {
-            date: ch.date,
-            description: `Challan - ${ch.from} to ${ch.to}${advanceInChallan > 0 ? ' (Advance: ₹' + advanceInChallan.toLocaleString() + ')' : ''}`,
-            refNo: ch.challanNumber || 'Challan',
-            truckNo: ch.truckNumber,
-            debit: advanceInChallan, // Show advance paid as debit
-            credit: credit // Show total owed as credit
-          };
-        });
-        
-        // FIXED: Add payment transactions to truck owner (debit = what we paid)
-        const ownerPayments = allRecords.filter(r => 
-          r.type === 'payment_transaction' && 
-          r.truckNumber === truckNumber &&
-          (r.paymentType === 'Advance to Owner' || r.paymentType === 'Balance to Owner')
-        );
-        
-        ownerPayments.forEach(payment => {
-          const debit = payment.paymentAmount || 0;
-          totalReceivable += debit;
-          
-          transactions.push({
-            date: payment.paymentDate,
-            description: `Payment to Owner - ${payment.paymentMode}${payment.tdsAmount ? ' (TDS Deducted: ₹' + payment.tdsAmount.toLocaleString() + ')' : ''}`,
-            refNo: payment.paymentReference || 'Payment',
-            truckNo: payment.truckNumber,
-            debit: debit,
-            credit: 0
-          });
-        });
-        
-      } else if (type === 'staff') {
-        // Staff ledger - commissions taken as loans and salary payments (ALREADY WORKING)
-        const commissionEntries = allRecords.filter(r => 
-          r.type === 'daily_register' && 
-          r.commissionApplicable && 
-          r.commissionTakenBy === account &&
-          r.commissionTakenBy !== 'South Gujrat Freight Carrier'
-        );
-        
-        const salaryPayments = allRecords.filter(r => 
-          r.type === 'salary_payment' && 
-          r.staffName === account
-        );
-        
-        // Commission taken by staff = LOAN/ADVANCE (debit) - staff owes this to company
-        transactions = [...commissionEntries.map(entry => {
-          const debit = entry.commission || 0;
-          totalReceivable += debit;
-          
-          return {
-            date: entry.date,
-            description: `Commission Loan - ${entry.from} to ${entry.to} (${entry.truckNumber})`,
-            refNo: entry.truckNumber,
-            truckNo: entry.truckNumber,
-            debit: debit,
-            credit: 0
-          };
-        }), ...salaryPayments.map(payment => {
-          const credit = payment.staffSalary || 0;
-          totalPayable += credit;
-          
-          return {
-            date: payment.paymentDate || payment.createdAt?.split('T')[0],
-            description: 'Salary Payment',
-            refNo: 'Salary',
-            truckNo: '-',
-            debit: 0,
-            credit: credit
-          };
-        })];
-      }
+  let transactions = [];
+  let accountName = account;
+  let totalReceivable = 0;
+  let totalPayable = 0;
+  let totalTDS = 0;
+  let totalDeductions = 0;
 
-      // Sort all transactions by date
-      transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      // Calculate running balance
-      let runningBalance = 0;
-      const transactionsWithBalance = transactions.map(t => {
-        runningBalance += t.debit - t.credit;
-        return { ...t, balance: runningBalance };
-      });
-
-      // Update UI elements
-      const ledgerAccountName = document.getElementById('ledgerAccountName');
-      if (ledgerAccountName) {
-        ledgerAccountName.textContent = accountName;
-      }
+  // ========================================================================
+  // COMPANY/CONSIGNOR/CONSIGNEE LEDGER - RECEIVABLES
+  // ========================================================================
+  if (type === 'company') {
+    // Get Booking LRs with proper Billing To routing
+    const bookingLRs = allRecords.filter(r => {
+      // Must be booking LR
+      if (r.type !== 'booking_lr') return false;
       
-      const ledgerReceivable = document.getElementById('ledgerReceivable');
-      if (ledgerReceivable) {
-        ledgerReceivable.textContent = `₹${totalReceivable.toLocaleString()}`;
-      }
+      // EXCLUDE "To Pay" LRs (destination transactions - no billing needed)
+      if (r.lrType === 'To Pay') return false;
       
-      const ledgerPayable = document.getElementById('ledgerPayable');
-      if (ledgerPayable) {
-        ledgerPayable.textContent = `₹${totalPayable.toLocaleString()}`;
-      }
-      
-      const ledgerTransactions = document.getElementById('ledgerTransactions');
-      if (ledgerTransactions) {
-        ledgerTransactions.textContent = transactionsWithBalance.length;
-      }
-      
-      const ledgerBalance = document.getElementById('ledgerBalance');
-      if (ledgerBalance) {
-        ledgerBalance.textContent = `₹${(totalReceivable - totalPayable).toLocaleString()}`;
-      }
-
-      // Render transactions table
-      const tbody = document.getElementById('ledgerTransactionsList');
-      if (!tbody) return;
-      
-      if (transactionsWithBalance.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">No transactions</td></tr>';
+      // Check "Billing To" field to route correctly
+      if (r.billingTo === 'Consignor') {
+        return r.consignorName === account;
+      } else if (r.billingTo === 'Consignee') {
+        return r.consigneeName === account;
       } else {
-        tbody.innerHTML = transactionsWithBalance.map(t => `
-          <tr>
-            <td>${t.date || 'N/A'}</td>
-            <td>${t.description}</td>
-            <td>${t.refNo}</td>
-            <td>${t.truckNo}</td>
-            <td>${t.debit > 0 ? '₹' + t.debit.toLocaleString() : '-'}</td>
-            <td>${t.credit > 0 ? '₹' + t.credit.toLocaleString() : '-'}</td>
-            <td class="${t.balance >= 0 ? 'profit-positive' : 'profit-negative'}">₹${t.balance.toLocaleString()}</td>
-          </tr>
-        `).join('');
+        // Fallback to companyName for backward compatibility
+        return r.companyName === account;
       }
+    });
+    
+    // Add LRs as receivables (debit)
+    transactions = bookingLRs.map(lr => {
+      // Use bill amount if billed, otherwise LR amount
+      const debit = lr.billAmount || lr.companyRate || 0;
+      totalReceivable += debit;
+      
+      return {
+        date: lr.billDate || lr.lrDate || lr.date,
+        description: lr.billNumber ? 
+          `Bill ${lr.billNumber} - ${lr.from} to ${lr.to}` : 
+          `LR ${lr.lrNumber} - ${lr.from} to ${lr.to}`,
+        refNo: lr.billNumber || lr.lrNumber,
+        truckNo: lr.truckNumber,
+        debit: debit,
+        credit: 0,
+        type: lr.billNumber ? 'bill' : 'lr',
+        status: lr.billNumber ? 'billed' : 'unbilled',
+        recordId: lr.__backendId
+      };
+    });
+    
+    // Add payment transactions from companies as receipts (credit)
+    const companyPayments = allRecords.filter(r => 
+      r.type === 'payment_transaction' && 
+      r.companyName === account &&
+      (r.paymentType === 'Advance from Company' || r.paymentType === 'Balance from Company')
+    );
+    
+    companyPayments.forEach(payment => {
+      const credit = payment.paymentAmount || 0;
+      const tds = payment.tdsAmount || 0;
+      totalPayable += credit;
+      totalTDS += tds;
+      
+      transactions.push({
+        date: payment.paymentDate,
+        description: `Payment Received - ${payment.paymentMode}${tds ? ' (TDS: ₹' + tds.toLocaleString() + ')' : ''}`,
+        refNo: payment.paymentReference || 'Payment',
+        truckNo: payment.truckNumber || '-',
+        debit: 0,
+        credit: credit,
+        type: 'payment',
+        status: 'completed',
+        recordId: payment.__backendId
+      });
+    });
+    
+    // Add deductions if any
+    const deductionEntries = allRecords.filter(r =>
+      r.type === 'deduction' &&
+      (r.companyName === account || r.consignorName === account || r.consigneeName === account)
+    );
+    
+    deductionEntries.forEach(ded => {
+      const credit = ded.deductionAmount || 0;
+      totalDeductions += credit;
+      totalPayable += credit;
+      
+      transactions.push({
+        date: ded.date,
+        description: `Deduction - ${ded.reason || 'Adjustment'}`,
+        refNo: ded.lrNumber || '-',
+        truckNo: ded.truckNumber || '-',
+        debit: 0,
+        credit: credit,
+        type: 'deduction',
+        status: 'completed',
+        recordId: ded.__backendId
+      });
+    });
+    
+  // ========================================================================
+  // PARTY LEDGER - RECEIVABLES  
+  // ========================================================================
+  } else if (type === 'party') {
+    // Get Non-Booking LRs for party (EXCLUDE To Pay)
+    const nonBookingLRs = allRecords.filter(r => 
+      r.type === 'non_booking_lr' && 
+      r.partyName === account &&
+      r.lrType !== 'To Pay' // EXCLUDE To Pay LRs
+    );
+    
+    // Also check Booking LRs that might be linked to this party
+    const bookingLRs = allRecords.filter(r => 
+      r.type === 'booking_lr' && 
+      r.partyName === account &&
+      r.lrType !== 'To Pay' // EXCLUDE To Pay LRs
+    );
+    
+    // Add LRs as receivables (debit)
+    transactions = [...nonBookingLRs.map(lr => {
+      const debit = lr.billAmount || lr.freightAmount || 0;
+      totalReceivable += debit;
+      
+      return {
+        date: lr.billDate || lr.lrDate || lr.date,
+        description: lr.billNumber ? 
+          `Bill ${lr.billNumber} - ${lr.from} to ${lr.to}` : 
+          `LR ${lr.lrNumber} - ${lr.from} to ${lr.to}`,
+        refNo: lr.billNumber || lr.lrNumber,
+        truckNo: lr.truckNumber,
+        debit: debit,
+        credit: 0,
+        type: lr.billNumber ? 'bill' : 'lr',
+        status: lr.billNumber ? 'billed' : 'unbilled',
+        recordId: lr.__backendId
+      };
+    }), ...bookingLRs.map(lr => {
+      const debit = lr.billAmount || lr.companyRate || 0;
+      totalReceivable += debit;
+      
+      return {
+        date: lr.billDate || lr.lrDate || lr.date,
+        description: lr.billNumber ? 
+          `Bill ${lr.billNumber} - ${lr.from} to ${lr.to}` : 
+          `LR ${lr.lrNumber} - ${lr.from} to ${lr.to}`,
+        refNo: lr.billNumber || lr.lrNumber,
+        truckNo: lr.truckNumber,
+        debit: debit,
+        credit: 0,
+        type: lr.billNumber ? 'bill' : 'lr',
+        status: lr.billNumber ? 'billed' : 'unbilled',
+        recordId: lr.__backendId
+      };
+    })];
+    
+    // Add payment transactions from parties as receipts (credit)
+    const partyPayments = allRecords.filter(r => 
+      r.type === 'payment_transaction' && 
+      r.partyName === account
+    );
+    
+    partyPayments.forEach(payment => {
+      const credit = payment.paymentAmount || 0;
+      const tds = payment.tdsAmount || 0;
+      totalPayable += credit;
+      totalTDS += tds;
+      
+      transactions.push({
+        date: payment.paymentDate,
+        description: `Payment Received - ${payment.paymentMode}${tds ? ' (TDS: ₹' + tds.toLocaleString() + ')' : ''}`,
+        refNo: payment.paymentReference || 'Payment',
+        truckNo: payment.truckNumber || '-',
+        debit: 0,
+        credit: credit,
+        type: 'payment',
+        status: 'completed',
+        recordId: payment.__backendId
+      });
+    });
+    
+  // ========================================================================
+  // TRUCK LEDGER - PAYABLES
+  // ========================================================================
+  } else if (type === 'truck') {
+    const truckNumber = account.split(' - ')[0];
+    const challanEntries = allRecords.filter(r => r.type === 'challan_book' && r.truckNumber === truckNumber);
+    
+    // Add challans as payables (credit = what we owe)
+    transactions = challanEntries.map(ch => {
+      const credit = ch.truckRate || 0;
+      const advanceInChallan = ch.advancePaidToOwner || 0;
+      const commissionDeducted = (ch.commissionDeductedInChallan && ch.commission) ? ch.commission : 0;
+      totalPayable += credit;
+      
+      // If advance was paid during challan creation, count it
+      if (advanceInChallan > 0) {
+        totalReceivable += advanceInChallan;
+      }
+      
+      // Track commission deductions
+      if (commissionDeducted > 0) {
+        totalDeductions += commissionDeducted;
+      }
+      
+      return {
+        date: ch.date,
+        description: `Challan - ${ch.from} to ${ch.to}${advanceInChallan > 0 ? ' (Adv: ₹' + advanceInChallan.toLocaleString() + ')' : ''}${commissionDeducted > 0 ? ' (Com: ₹' + commissionDeducted.toLocaleString() + ')' : ''}`,
+        refNo: ch.challanNumber || 'Challan',
+        truckNo: ch.truckNumber,
+        debit: advanceInChallan, // Show advance paid as debit
+        credit: credit, // Show total owed as credit
+        type: 'challan',
+        status: 'pending',
+        recordId: ch.__backendId
+      };
+    });
+    
+    // Add payment transactions to truck owner (debit = what we paid)
+    const ownerPayments = allRecords.filter(r => 
+      r.type === 'payment_transaction' && 
+      r.truckNumber === truckNumber &&
+      (r.paymentType === 'Advance to Owner' || r.paymentType === 'Balance to Owner')
+    );
+    
+    ownerPayments.forEach(payment => {
+      const debit = payment.paymentAmount || 0;
+      totalReceivable += debit;
+      
+      transactions.push({
+        date: payment.paymentDate,
+        description: `Payment to Owner - ${payment.paymentMode}`,
+        refNo: payment.paymentReference || 'Payment',
+        truckNo: payment.truckNumber,
+        debit: debit,
+        credit: 0,
+        type: 'payment',
+        status: 'completed',
+        recordId: payment.__backendId
+      });
+    });
+    
+  // ========================================================================
+  // STAFF LEDGER
+  // ========================================================================
+  } else if (type === 'staff') {
+    const commissionEntries = allRecords.filter(r => 
+      r.type === 'daily_register' && 
+      r.commissionApplicable && 
+      r.commissionTakenBy === account &&
+      r.commissionTakenBy !== 'South Gujrat Freight Carrier'
+    );
+    
+    const salaryPayments = allRecords.filter(r => 
+      r.type === 'salary_payment' && 
+      r.staffName === account
+    );
+    
+    // Commission taken by staff = LOAN/ADVANCE (debit)
+    transactions = [...commissionEntries.map(entry => {
+      const debit = entry.commission || 0;
+      totalReceivable += debit;
+      
+      return {
+        date: entry.date,
+        description: `Commission Loan - ${entry.from} to ${entry.to} (${entry.truckNumber})`,
+        refNo: entry.truckNumber,
+        truckNo: entry.truckNumber,
+        debit: debit,
+        credit: 0,
+        type: 'commission',
+        status: entry.commissionStatus || 'pending',
+        recordId: entry.__backendId
+      };
+    }), ...salaryPayments.map(payment => {
+      const credit = payment.staffSalary || 0;
+      totalPayable += credit;
+      
+      return {
+        date: payment.paymentDate || payment.createdAt?.split('T')[0],
+        description: 'Salary Payment',
+        refNo: 'Salary',
+        truckNo: '-',
+        debit: 0,
+        credit: credit,
+        type: 'salary',
+        status: 'completed',
+        recordId: payment.__backendId
+      };
+    })];
+  }
 
-      document.getElementById('ledgerSummaryCard').classList.remove('hidden');
-      document.getElementById('ledgerDetailsCard').classList.remove('hidden');
+  // ========================================================================
+  // SORT AND CALCULATE RUNNING BALANCE
+  // ========================================================================
+  
+  // Sort all transactions by date
+  transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Calculate running balance
+  let runningBalance = 0;
+  const transactionsWithBalance = transactions.map(t => {
+    runningBalance += t.debit - t.credit;
+    return { ...t, balance: runningBalance };
+  });
+
+  // Store for filtering
+  window.currentLedgerData = {
+    type: type,
+    account: account,
+    transactions: transactionsWithBalance,
+    totals: {
+      receivable: totalReceivable,
+      payable: totalPayable,
+      tds: totalTDS,
+      deductions: totalDeductions,
+      balance: totalReceivable - totalPayable
     }
+  };
+
+  // ========================================================================
+  // UPDATE UI
+  // ========================================================================
+  
+  updateLedgerUI(accountName, totalReceivable, totalPayable, totalTDS, totalDeductions, transactionsWithBalance);
+  
+  // Show summary and details cards
+  document.getElementById('ledgerSummaryCard').classList.remove('hidden');
+  document.getElementById('ledgerDetailsCard').classList.remove('hidden');
+}
+
+// ============================================================================
+// UPDATE LEDGER UI
+// ============================================================================
+
+function updateLedgerUI(accountName, totalReceivable, totalPayable, totalTDS, totalDeductions, transactions) {
+  // Update account name
+  const ledgerAccountName = document.getElementById('ledgerAccountName');
+  if (ledgerAccountName) {
+    ledgerAccountName.textContent = accountName;
+  }
+  
+  // Update totals
+  const ledgerReceivable = document.getElementById('ledgerReceivable');
+  if (ledgerReceivable) {
+    ledgerReceivable.textContent = `₹${totalReceivable.toLocaleString()}`;
+  }
+  
+  const ledgerPayable = document.getElementById('ledgerPayable');
+  if (ledgerPayable) {
+    ledgerPayable.textContent = `₹${totalPayable.toLocaleString()}`;
+  }
+  
+  const ledgerTransactions = document.getElementById('ledgerTransactions');
+  if (ledgerTransactions) {
+    ledgerTransactions.textContent = transactions.length;
+  }
+  
+  const ledgerBalance = document.getElementById('ledgerBalance');
+  if (ledgerBalance) {
+    const balance = totalReceivable - totalPayable;
+    ledgerBalance.textContent = `₹${Math.abs(balance).toLocaleString()}`;
+    ledgerBalance.className = balance >= 0 ? 
+      'text-2xl font-bold text-green-600' : 
+      'text-2xl font-bold text-red-600';
+  }
+
+  // Render transactions table
+  renderLedgerTable(transactions);
+}
+
+// ============================================================================
+// RENDER LEDGER TABLE
+// ============================================================================
+
+function renderLedgerTable(transactions) {
+  const tbody = document.getElementById('ledgerTransactionsList');
+  if (!tbody) return;
+  
+  if (transactions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-8">No transactions found</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = transactions.map(t => {
+    // Color code balance
+    const balanceClass = t.balance >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+    const balanceText = t.balance >= 0 ? 
+      `₹${t.balance.toLocaleString()}` : 
+      `-₹${Math.abs(t.balance).toLocaleString()}`;
+    
+    // Status badge
+    let statusBadge = '';
+    if (t.type === 'lr' || t.type === 'bill') {
+      statusBadge = t.status === 'billed' ? 
+        '<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Billed</span>' :
+        '<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">Unbilled</span>';
+    } else if (t.type === 'payment') {
+      statusBadge = '<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Paid</span>';
+    }
+    
+    return `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">${formatDate(t.date) || 'N/A'}</td>
+        <td class="px-4 py-3">
+          ${t.description}
+          ${statusBadge ? '<br>' + statusBadge : ''}
+        </td>
+        <td class="px-4 py-3 font-mono text-sm">${t.refNo || '-'}</td>
+        <td class="px-4 py-3">${t.truckNo || '-'}</td>
+        <td class="px-4 py-3 text-right ${t.debit > 0 ? 'text-green-600 font-semibold' : 'text-gray-400'}">
+          ${t.debit > 0 ? '₹' + t.debit.toLocaleString() : '-'}
+        </td>
+        <td class="px-4 py-3 text-right ${t.credit > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}">
+          ${t.credit > 0 ? '₹' + t.credit.toLocaleString() : '-'}
+        </td>
+        <td class="px-4 py-3 text-right ${balanceClass}">
+          ${balanceText}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
 
     // Pagination state management
     const paginationState = {
