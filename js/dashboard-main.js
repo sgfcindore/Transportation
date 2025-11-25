@@ -5433,7 +5433,7 @@ function updateDailyRegisterList() {
       if (!tbody) return;
       
       if (bookingLRs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-500 py-8">No booking LRs found. Create some booking LRs from the "Booking LR" tab first.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center text-gray-500 py-8">No booking LRs found. Create some booking LRs from the "Booking LR" tab first.</td></tr>';
         updateGSTSummary([]); // Update summary with empty data
         // Remove pagination if exists
         const paginationDiv = document.getElementById('gst-pagination');
@@ -5493,7 +5493,7 @@ function updateDailyRegisterList() {
       }
 
       if (filteredLRs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-500 py-8">No results found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center text-gray-500 py-8">No results found</td></tr>';
         // Remove pagination if exists
         const paginationDiv = document.getElementById('gst-pagination');
         if (paginationDiv) paginationDiv.remove();
@@ -5505,10 +5505,19 @@ function updateDailyRegisterList() {
       const startIndex = (paginationState['gst'].currentPage - 1) * paginationState['gst'].itemsPerPage;
 
       // Render table with paginated data
-      tbody.innerHTML = paginatedLRs.map((record, index) => `
+      tbody.innerHTML = paginatedLRs.map((record, index) => {
+        // Determine type badge styling
+        const lrType = record.typeOfBooking || 'To Be Billed';
+        const isToPayType = lrType === 'To Pay';
+        const typeBadgeClass = isToPayType 
+          ? 'bg-orange-100 text-orange-800' 
+          : 'bg-blue-100 text-blue-800';
+        
+        return `
         <tr>
           <td class="text-center">${startIndex + index + 1}</td>
           <td class="font-semibold text-blue-600">${record.lrNumber || '-'}</td>
+          <td><span class="px-2 py-1 text-xs font-semibold rounded-full ${typeBadgeClass}">${lrType}</span></td>
           <td>${record.truckNumber || '-'}</td>
           <td>${record.lrDate ? formatDate(record.lrDate) : '-'}</td>
           <td>${record.from || '-'}</td>
@@ -5522,7 +5531,8 @@ function updateDailyRegisterList() {
           <td class="text-right">${record.weight || 0}</td>
           <td class="text-right font-semibold">₹${(record.companyRate || 0).toLocaleString('en-IN')}</td>
         </tr>
-      `).join('');
+        `;
+      }).join('');
 
       // PAGINATION: Add controls after the table
       const paginationHTML = createPaginationControls('gst', filteredLRs.length);
