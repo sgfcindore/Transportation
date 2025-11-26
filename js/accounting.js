@@ -1558,17 +1558,6 @@ function showMessage(message, type = 'info') {
   
   setTimeout(() => messageDiv.remove(), 5000);
 }
-  
-  toast.className = `fixed top-20 right-6 px-6 py-4 rounded-lg shadow-lg z-50 border-l-4 ${colors[type]} max-w-md`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.3s';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
 
 // ============================================================================
 // INITIALIZATION
