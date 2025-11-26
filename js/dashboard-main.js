@@ -2639,7 +2639,7 @@ function populateDailyEntrySelect() {
         <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
           <h3 class="text-lg font-semibold mb-4">Confirm Logout</h3>
           <p class="text-gray-600 mb-6">
-            Are you sure you want to logout? All your data is safely stored in your Canva Sheet.
+            Are you sure you want to logout? All your data is safely stored in the system.
           </p>
           <div class="flex gap-3 justify-end">
             <button id="cancelLogout" class="btn-secondary">Cancel</button>
