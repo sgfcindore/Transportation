@@ -1,16 +1,88 @@
 // ============================================================================
-// QUICK BOOKS ACCOUNTING SYSTEM - FIXED VERSION
-// Ultra-Simple with Dashboard Integration
+// QUICK BOOKS - BETTER DATABASE DETECTION
 // ============================================================================
 
-// Global variables
 let db;
 let allDashboardRecords = [];
 let currentUser = null;
-
-// Financial Year dates
 const FY_START = '2024-04-01';
 const FY_END = '2025-03-31';
+
+// ============================================================================
+// IMPROVED DATABASE DETECTION
+// ============================================================================
+
+async function loadDashboardData() {
+  try {
+    console.log('🔍 Searching for dashboard database...');
+    
+    // Get ALL databases in browser
+    const databases = await indexedDB.databases();
+    console.log('📊 Found databases:', databases.map(d => d.name));
+    
+    let dashDB = null;
+    let dbName = null;
+    
+    // Try each database to find one with 'records' table
+    for (const dbInfo of databases) {
+      try {
+        console.log(`Trying database: ${dbInfo.name}...`);
+        const testDB = new Dexie(dbInfo.name);
+        await testDB.open();
+        
+        // Check if it has records table
+        const tableNames = testDB.tables.map(t => t.name);
+        console.log(`  Tables in ${dbInfo.name}:`, tableNames);
+        
+        if (tableNames.includes('records')) {
+          // Check if it has data
+          const recordsTable = testDB.table('records');
+          const count = await recordsTable.count();
+          console.log(`  ✅ Found 'records' table with ${count} records`);
+          
+          if (count > 0) {
+            dashDB = testDB;
+            dbName = dbInfo.name;
+            console.log(`🎯 Using database: ${dbName}`);
+            break;
+          }
+        }
+        
+        testDB.close();
+      } catch (error) {
+        console.log(`  ❌ Error with ${dbInfo.name}:`, error.message);
+      }
+    }
+    
+    if (!dashDB) {
+      console.error('❌ No dashboard database found with records');
+      showMessage('Dashboard database not found. Please:\n1. Open Operations Dashboard\n2. Create at least 1 LR\n3. Come back and click Sync', 'error');
+      return [];
+    }
+    
+    // Get all records
+    const table = dashDB.table('records');
+    allDashboardRecords = await table.toArray();
+    
+    console.log(`✅ SUCCESS! Loaded ${allDashboardRecords.length} records from ${dbName}`);
+    
+    // Show record types for debugging
+    const types = [...new Set(allDashboardRecords.map(r => r.type))];
+    console.log('Record types found:', types);
+    
+    // Show sample counts
+    const lrCount = allDashboardRecords.filter(r => r.type === 'booking_lr' || r.type === 'non_booking_lr').length;
+    const challanCount = allDashboardRecords.filter(r => r.type === 'challan_book').length;
+    console.log(`📊 LRs: ${lrCount}, Challans: ${challanCount}`);
+    
+    return allDashboardRecords;
+    
+  } catch (error) {
+    console.error('❌ Error loading dashboard data:', error);
+    showMessage('Error loading data: ' + error.message, 'error');
+    return [];
+  }
+}
 
 // ============================================================================
 // DATABASE INITIALIZATION
@@ -28,62 +100,7 @@ async function initDB() {
   });
   
   await db.open();
-  console.log('QuickBooks Database initialized');
-}
-
-// ============================================================================
-// LOAD DASHBOARD DATA - FIXED
-// ============================================================================
-
-async function loadDashboardData() {
-  try {
-    // Try multiple possible database names
-    let dashDB;
-    let dbName = null;
-    
-    // Check which database exists
-    const dbNames = ['sgfcDB', 'FreightCarrierDB', 'freightCarrierDB'];
-    
-    for (const name of dbNames) {
-      try {
-        dashDB = new Dexie(name);
-        await dashDB.open();
-        
-        // Check if it has the records table
-        if (dashDB.tables.find(t => t.name === 'records')) {
-          dbName = name;
-          console.log(`Found dashboard database: ${name}`);
-          break;
-        }
-        dashDB.close();
-      } catch (e) {
-        // Database doesn't exist, try next one
-      }
-    }
-    
-    if (!dbName) {
-      console.error('Dashboard database not found. Make sure dashboard is initialized.');
-      showMessage('Dashboard database not found. Please open Operations Dashboard first.', 'error');
-      return [];
-    }
-    
-    // Get all records from dashboard
-    const table = dashDB.table('records');
-    allDashboardRecords = await table.toArray();
-    
-    console.log(`✅ Loaded ${allDashboardRecords.length} records from dashboard (${dbName})`);
-    
-    // Log sample data for debugging
-    if (allDashboardRecords.length > 0) {
-      console.log('Sample record types:', [...new Set(allDashboardRecords.map(r => r.type))]);
-    }
-    
-    return allDashboardRecords;
-  } catch (error) {
-    console.error('Error loading dashboard data:', error);
-    showMessage('Could not load dashboard data: ' + error.message, 'error');
-    return [];
-  }
+  console.log('✅ QuickBooks database initialized');
 }
 
 // ============================================================================
@@ -98,12 +115,13 @@ async function syncWithDashboard() {
   btn.innerHTML = '<div class="loading-spinner"></div> Syncing...';
   
   try {
+    console.log('🔄 Starting sync...');
     await loadDashboardData();
     
     if (allDashboardRecords.length === 0) {
-      showMessage('No data found in dashboard. Create some LRs first!', 'warning');
+      showMessage('⚠️ No data found! Please create some LRs in Operations Dashboard first.', 'warning');
     } else {
-      showMessage(`Synced ${allDashboardRecords.length} records successfully!`, 'success');
+      showMessage(`✅ Synced ${allDashboardRecords.length} records successfully!`, 'success');
     }
     
     // Refresh current tab
@@ -113,7 +131,7 @@ async function syncWithDashboard() {
       switchTab(tabName);
     }
   } catch (error) {
-    console.error('Sync error:', error);
+    console.error('❌ Sync error:', error);
     showMessage('Sync failed: ' + error.message, 'error');
   } finally {
     btn.disabled = false;
@@ -122,13 +140,12 @@ async function syncWithDashboard() {
 }
 
 // ============================================================================
-// TAB SWITCHING - FIXED
+// TAB SWITCHING
 // ============================================================================
 
 function switchTab(tabName) {
-  console.log('Switching to tab:', tabName);
+  console.log('📑 Switching to tab:', tabName);
   
-  // Update active tab button
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-tab') === tabName) {
@@ -136,7 +153,6 @@ function switchTab(tabName) {
     }
   });
   
-  // Load tab content
   const container = document.getElementById('tabContents');
   
   switch(tabName) {
@@ -167,6 +183,75 @@ function switchTab(tabName) {
     default:
       container.innerHTML = '<div class="p-8 text-center text-gray-500">Tab content not available yet</div>';
   }
+}
+
+// ============================================================================
+// CALCULATE STATISTICS
+// ============================================================================
+
+async function calculateStats() {
+  const stats = {
+    totalAssets: 0,
+    totalIncome: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    lrCount: 0,
+    challanCount: 0
+  };
+  
+  try {
+    console.log('📊 Calculating stats from', allDashboardRecords.length, 'records');
+    
+    // Income from LRs (exclude To Pay)
+    const lrs = allDashboardRecords.filter(r => {
+      const isLR = (r.type === 'booking_lr' || r.type === 'non_booking_lr');
+      const isNotToPay = r.lrType !== 'To Pay';
+      return isLR && isNotToPay;
+    });
+    
+    stats.lrCount = lrs.length;
+    
+    lrs.forEach(lr => {
+      const amount = parseFloat(lr.billAmount || lr.companyRate || lr.freightAmount || 0);
+      stats.totalIncome += amount;
+    });
+    
+    console.log(`💰 Income: ₹${stats.totalIncome.toLocaleString()} from ${stats.lrCount} LRs`);
+    
+    // Expenses from Challans
+    const challans = allDashboardRecords.filter(r => r.type === 'challan_book');
+    stats.challanCount = challans.length;
+    
+    challans.forEach(ch => {
+      const amount = parseFloat(ch.truckRate || 0);
+      stats.totalExpenses += amount;
+    });
+    
+    console.log(`💸 Expenses: ₹${stats.totalExpenses.toLocaleString()} from ${stats.challanCount} Challans`);
+    
+    // Add expenses from QuickBooks
+    const qbExpenses = await db.expenses.toArray();
+    qbExpenses.forEach(exp => {
+      stats.totalExpenses += parseFloat(exp.amount || 0);
+    });
+    
+    if (qbExpenses.length > 0) {
+      console.log(`💸 Additional expenses: ₹${qbExpenses.reduce((s, e) => s + e.amount, 0).toLocaleString()} from QuickBooks`);
+    }
+    
+    // Simple assets calculation (30% of income as receivable)
+    stats.totalAssets = stats.totalIncome * 0.3;
+    
+    // Net profit
+    stats.netProfit = stats.totalIncome - stats.totalExpenses;
+    
+    console.log(`📈 Net Profit: ₹${stats.netProfit.toLocaleString()}`);
+    
+  } catch (error) {
+    console.error('❌ Error calculating stats:', error);
+  }
+  
+  return stats;
 }
 
 // ============================================================================
@@ -223,15 +308,17 @@ async function loadDashboardTab(container) {
       </div>
     </div>
 
-    <!-- Data Status -->
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+    <!-- Data Status Info -->
+    <div class="${allDashboardRecords.length === 0 ? 'bg-red-50 border-red-500' : 'bg-blue-50 border-blue-500'} border-l-4 p-4 mb-6 rounded">
       <div class="flex items-center">
-        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 ${allDashboardRecords.length === 0 ? 'text-red-500' : 'text-blue-500'} mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        <p class="text-sm text-blue-700">
-          <strong>${allDashboardRecords.length} records</strong> synced from Operations Dashboard
-          ${allDashboardRecords.length === 0 ? '• Click "Sync Data" or create some LRs in Operations Dashboard first!' : ''}
+        <p class="text-sm ${allDashboardRecords.length === 0 ? 'text-red-700' : 'text-blue-700'}">
+          ${allDashboardRecords.length === 0 ? 
+            '<strong>No data synced yet!</strong> Go to Operations Dashboard, create some LRs, then click "Sync Data"' :
+            `<strong>${allDashboardRecords.length} records</strong> synced from Operations Dashboard • ${stats.lrCount} LRs, ${stats.challanCount} Challans`
+          }
         </p>
       </div>
     </div>
@@ -291,123 +378,55 @@ async function loadDashboardTab(container) {
     </div>
   `;
   
-  // Load recent activity
   loadRecentActivity();
 }
 
 // ============================================================================
-// CALCULATE STATISTICS - FIXED
-// ============================================================================
-
-async function calculateStats() {
-  const stats = {
-    totalAssets: 0,
-    totalIncome: 0,
-    totalExpenses: 0,
-    netProfit: 0,
-    lrCount: 0,
-    challanCount: 0
-  };
-  
-  try {
-    console.log('Calculating stats from', allDashboardRecords.length, 'records');
-    
-    // Calculate Income from LRs
-    const lrs = allDashboardRecords.filter(r => {
-      const isLR = (r.type === 'booking_lr' || r.type === 'non_booking_lr');
-      const isNotToPay = r.lrType !== 'To Pay';
-      return isLR && isNotToPay;
-    });
-    
-    stats.lrCount = lrs.length;
-    console.log(`Found ${lrs.length} billable LRs`);
-    
-    lrs.forEach(lr => {
-      const amount = parseFloat(lr.billAmount || lr.companyRate || lr.freightAmount || 0);
-      stats.totalIncome += amount;
-    });
-    
-    // Calculate Expenses from Challans
-    const challans = allDashboardRecords.filter(r => r.type === 'challan_book');
-    stats.challanCount = challans.length;
-    console.log(`Found ${challans.length} challans`);
-    
-    challans.forEach(ch => {
-      const amount = parseFloat(ch.truckRate || 0);
-      stats.totalExpenses += amount;
-    });
-    
-    // Add expenses from our system
-    const expenses = await db.expenses.toArray();
-    expenses.forEach(exp => {
-      stats.totalExpenses += parseFloat(exp.amount || 0);
-    });
-    
-    // Calculate receivables (simplified)
-    stats.totalAssets = stats.totalIncome * 0.3; // Assume 30% pending
-    
-    // Calculate profit
-    stats.netProfit = stats.totalIncome - stats.totalExpenses;
-    
-    console.log('Stats calculated:', stats);
-    
-  } catch (error) {
-    console.error('Error calculating stats:', error);
-  }
-  
-  return stats;
-}
-
-// ============================================================================
-// PLACEHOLDER TAB FUNCTIONS
+// PLACEHOLDER FUNCTIONS FOR OTHER TABS
 // ============================================================================
 
 function loadExpensesTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Expenses Tab</p><p class="text-sm text-gray-400">Coming in Phase 2A</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Expenses Tab</p><p class="text-sm text-gray-400">Phase 2A - Coming next!</p></div>';
 }
 
 function loadBankTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Bank Transactions Tab</p><p class="text-sm text-gray-400">Coming in Phase 2B</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Bank Transactions</p><p class="text-sm text-gray-400">Phase 2B</p></div>';
 }
 
 function loadBalanceSheetTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Balance Sheet Tab</p><p class="text-sm text-gray-400">Coming in Phase 2C</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Balance Sheet</p><p class="text-sm text-gray-400">Phase 2C</p></div>';
 }
 
 function loadPLTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">P&L Statement Tab</p><p class="text-sm text-gray-400">Coming in Phase 2D</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">P&L Statement</p><p class="text-sm text-gray-400">Phase 2D</p></div>';
 }
 
 function loadAssetsTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Assets Tab</p><p class="text-sm text-gray-400">Coming in Phase 2E</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Fixed Assets</p><p class="text-sm text-gray-400">Phase 2E</p></div>';
 }
 
 function loadExportTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Export Tab</p><p class="text-sm text-gray-400">Coming in Phase 2E</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Export to Excel</p><p class="text-sm text-gray-400">Phase 2E</p></div>';
 }
 
 function loadSettingsTab(container) {
-  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Settings Tab</p><p class="text-sm text-gray-400">Opening Balance Setup Coming Soon</p></div>';
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Settings & Opening Balance</p><p class="text-sm text-gray-400">Phase 2F</p></div>';
 }
 
-// ============================================================================
-// PLACEHOLDER MODAL FUNCTIONS
-// ============================================================================
-
 function openExpenseModal() {
-  alert('Expense form coming in Phase 2A!');
+  showMessage('Expense tracking coming in Phase 2A!', 'info');
 }
 
 function openBankTransactionModal() {
-  alert('Bank transaction form coming in Phase 2B!');
+  showMessage('Bank transactions coming in Phase 2B!', 'info');
 }
 
 function openAssetModal() {
-  alert('Asset form coming in Phase 2E!');
+  showMessage('Asset management coming in Phase 2E!', 'info');
 }
 
 // ============================================================================
-// RECENT ACTIVITY
+// UTILITY FUNCTIONS
 // ============================================================================
 
 async function loadRecentActivity() {
@@ -423,7 +442,7 @@ async function loadRecentActivity() {
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
     
     if (activities.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity. Add expenses or bank transactions to see them here.</p>';
+      container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity. Start by adding expenses or bank transactions!</p>';
       return;
     }
     
@@ -470,10 +489,6 @@ async function loadRecentActivity() {
   }
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
 function formatDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -487,9 +502,11 @@ function showMessage(message, type = 'info') {
   const toast = document.createElement('div');
   const bgColor = type === 'error' ? 'bg-red-100 border-red-500 text-red-700' : 
                   type === 'warning' ? 'bg-yellow-100 border-yellow-500 text-yellow-700' :
+                  type === 'info' ? 'bg-blue-100 border-blue-500 text-blue-700' :
                   'bg-green-100 border-green-500 text-green-700';
   
-  toast.className = `fixed top-20 right-6 px-6 py-4 rounded-lg shadow-lg z-50 border-l-4 ${bgColor}`;
+  toast.className = `fixed top-20 right-6 px-6 py-4 rounded-lg shadow-lg z-50 border-l-4 ${bgColor} max-w-md`;
+  toast.style.whiteSpace = 'pre-line';
   toast.textContent = message;
   document.body.appendChild(toast);
   
@@ -497,7 +514,7 @@ function showMessage(message, type = 'info') {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.3s';
     setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  }, 5000);
 }
 
 // ============================================================================
@@ -506,6 +523,7 @@ function showMessage(message, type = 'info') {
 
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Quick Books initializing...');
+  console.log('═══════════════════════════════════════════════════════');
   
   // Check authentication
   const user = localStorage.getItem('sgfc_user');
@@ -519,12 +537,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   
   // Initialize database
   await initDB();
-  console.log('✅ QuickBooks database ready');
   
   // Load dashboard data
   await loadDashboardData();
   
   // Load default tab
   switchTab('dashboard');
-  console.log('✅ Quick Books loaded successfully');
+  
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('✅ Quick Books loaded successfully!');
+  console.log('💡 TIP: Click "Sync Data" to refresh data from dashboard');
 });
