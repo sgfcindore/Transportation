@@ -1,256 +1,4 @@
 // ============================================================================
-// QUICK BOOKS ULTIMATE V1 - Complete System with Fixed Assets
-// Phase 1: Dashboard ✅ | Phase 2A: Expenses ✅ | Phase 2B: Bank ✅
-// Phase 2C: Balance Sheet ✅ | Phase 2D: P&L ✅ | Phase 2E: Export ✅
-// Phase 3A: Fixed Assets ✅ NEW!
-// ============================================================================
-
-let db;
-let allDashboardRecords = [];
-let currentUser = null;
-const FY_START = '2024-04-01';
-const FY_END = '2025-03-31';
-
-// ============================================================================
-// DATABASE INITIALIZATION
-// ============================================================================
-
-async function initDB() {
-  db = new Dexie('QuickBooksDB');
-  
-  db.version(1).stores({
-    expenses: '++id, date, category, amount, paidTo, paymentMode, billNo, notes, createdAt',
-    bankTransactions: '++id, date, bank, type, amount, party, purpose, reference, createdAt',
-    assets: '++id, name, category, purchaseDate, purchasePrice, depRate, currentValue, location, notes, createdAt',
-    openingBalance: '++id, accountType, accountName, amount, date',
-    settings: 'key, value'
-  });
-  
-  await db.open();
-  console.log('✅ QuickBooks Ultimate V1 Ready - Now with Fixed Assets!');
-}
-
-// ============================================================================
-// LOAD DASHBOARD DATA
-// ============================================================================
-
-async function loadDashboardData() {
-  try {
-    const possibleDBNames = [
-      'sgfcDB', 'FreightCarrierDB', 'freightCarrierDB',
-      'SGFCDB', 'dashboardDB', 'DashboardDB',
-      'sgfc', 'SGFC', 'transportDB', 'lrDB'
-    ];
-    
-    for (const dbName of possibleDBNames) {
-      try {
-        const testDB = new Dexie(dbName);
-        await testDB.open();
-        
-        if (testDB.tables.some(t => t.name === 'records')) {
-          const recordsTable = testDB.table('records');
-          const count = await recordsTable.count();
-          
-          if (count > 0) {
-            allDashboardRecords = await recordsTable.toArray();
-            console.log(`✅ Loaded ${allDashboardRecords.length} records from "${dbName}"`);
-            testDB.close();
-            break;
-          }
-        }
-        testDB.close();
-      } catch (error) {}
-    }
-    
-    return allDashboardRecords;
-  } catch (error) {
-    console.error('Error loading dashboard data:', error);
-    return [];
-  }
-}
-
-async function syncWithDashboard() {
-  const btn = document.getElementById('syncBtn');
-  const originalHTML = btn.innerHTML;
-  
-  btn.disabled = true;
-  btn.innerHTML = '<div class="loading-spinner"></div> Syncing...';
-  
-  try {
-    await loadDashboardData();
-    showMessage(allDashboardRecords.length === 0 ? 'No data found' : `Synced ${allDashboardRecords.length} records!`, 
-                allDashboardRecords.length === 0 ? 'warning' : 'success');
-    
-    const activeTab = document.querySelector('.tab-btn.active');
-    if (activeTab) switchTab(activeTab.getAttribute('data-tab'));
-  } catch (error) {
-    showMessage('Sync failed', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = originalHTML;
-  }
-}
-
-// ============================================================================
-// TAB SWITCHING
-// ============================================================================
-
-function switchTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('data-tab') === tabName) btn.classList.add('active');
-  });
-  
-  const container = document.getElementById('tabContents');
-  
-  const tabs = {
-    'dashboard': loadDashboardTab,
-    'expenses': loadExpensesTab,
-    'bank': loadBankTab,
-    'balance-sheet': loadBalanceSheetTab,
-    'pl-statement': loadPLTab,
-    'assets': loadAssetsTab,
-    'export': loadExportTab,
-    'settings': loadSettingsTab
-  };
-  
-  if (tabs[tabName]) tabs[tabName](container);
-}
-
-// ============================================================================
-// CALCULATE STATISTICS
-// ============================================================================
-
-async function calculateStats() {
-  const stats = {
-    totalAssets: 0,
-    totalIncome: 0,
-    totalExpenses: 0,
-    netProfit: 0,
-    lrCount: 0,
-    challanCount: 0,
-    bankBalance: 0,
-    receivables: 0,
-    payables: 0,
-    fixedAssetsValue: 0
-  };
-  
-  try {
-    // Income from LRs
-    const lrs = allDashboardRecords.filter(r => 
-      (r.type === 'booking_lr' || r.type === 'non_booking_lr') && r.lrType !== 'To Pay'
-    );
-    stats.lrCount = lrs.length;
-    lrs.forEach(lr => stats.totalIncome += parseFloat(lr.billAmount || lr.companyRate || lr.freightAmount || 0));
-    
-    // Expenses
-    const challans = allDashboardRecords.filter(r => r.type === 'challan_book');
-    stats.challanCount = challans.length;
-    challans.forEach(ch => stats.totalExpenses += parseFloat(ch.truckRate || 0));
-    
-    const qbExpenses = await db.expenses.toArray();
-    qbExpenses.forEach(exp => stats.totalExpenses += parseFloat(exp.amount || 0));
-    
-    // Bank balance
-    const bankTxns = await db.bankTransactions.toArray();
-    bankTxns.forEach(txn => {
-      stats.bankBalance += txn.type === 'Credit' ? parseFloat(txn.amount || 0) : -parseFloat(txn.amount || 0);
-    });
-    
-    // Fixed Assets - Calculate current value with depreciation
-    const assets = await db.assets.toArray();
-    const today = new Date();
-    
-    assets.forEach(asset => {
-      const purchaseDate = new Date(asset.purchaseDate);
-      const yearsOwned = (today - purchaseDate) / (365.25 * 24 * 60 * 60 * 1000);
-      const depreciationAmount = asset.purchasePrice * (asset.depRate / 100) * yearsOwned;
-      const currentValue = Math.max(0, asset.purchasePrice - depreciationAmount);
-      
-      stats.fixedAssetsValue += currentValue;
-    });
-    
-    const openingBalances = await db.openingBalance.toArray();
-    openingBalances.forEach(ob => {
-      if (ob.accountType === 'bank') stats.bankBalance += parseFloat(ob.amount || 0);
-      if (ob.accountType === 'receivables') stats.receivables += parseFloat(ob.amount || 0);
-      if (ob.accountType === 'payables') stats.payables += parseFloat(ob.amount || 0);
-    });
-    
-    stats.receivables += stats.totalIncome * 0.3;
-    stats.totalAssets = stats.bankBalance + stats.receivables + stats.fixedAssetsValue;
-    stats.netProfit = stats.totalIncome - stats.totalExpenses;
-    
-  } catch (error) {
-    console.error('Error calculating stats:', error);
-  }
-  
-  return stats;
-}
-
-// ============================================================================
-// DASHBOARD TAB
-// ============================================================================
-
-async function loadDashboardTab(container) {
-  const stats = await calculateStats();
-  
-  container.innerHTML = `
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      ${['Assets', 'Income', 'Expenses', 'Profit'].map((label, i) => {
-        const values = [stats.totalAssets, stats.totalIncome, stats.totalExpenses, stats.netProfit];
-        const colors = ['blue', 'green', 'red', 'purple'];
-        const icons = ['M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6', 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'];
-        const isProfit = label === 'Profit';
-        return `
-          <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-${colors[i]}-500">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-medium text-gray-600">Total ${label}</h3>
-              <svg class="w-8 h-8 text-${colors[i]}-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icons[i]}"/>
-              </svg>
-            </div>
-            <p class="text-3xl font-bold ${isProfit && values[i] < 0 ? 'text-red-600' : 'text-gray-800'}">
-              ${isProfit && values[i] < 0 ? '-' : ''}₹${Math.abs(values[i]).toLocaleString('en-IN')}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">${label === 'Assets' ? 'As on today' : `FY 2024-25${label === 'Income' ? ` • ${stats.lrCount} LRs` : label === 'Expenses' ? ` • ${stats.challanCount} Challans` : ''}`}</p>
-          </div>
-        `;
-      }).join('')}
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        ${[
-          ['openExpenseModal()', 'orange', 'M12 6v6m0 0v6m0-6h6m-6 0H6', 'Add Expense'],
-          ['openBankTransactionModal()', 'blue', 'M12 6v6m0 0v6m0-6h6m-6 0H6', 'Bank Entry'],
-          ['openAssetModal()', 'purple', 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', 'Add Asset'],
-          ['switchTab("pl-statement")', 'teal', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 'P&L'],
-          ['switchTab("export")', 'indigo', 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10', 'Export'],
-          ['switchTab("settings")', 'pink', 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', 'Settings']
-        ].map(([action, color, icon, label]) => `
-          <button onclick="${action}" class="flex flex-col items-center p-4 bg-${color}-50 hover:bg-${color}-100 rounded-lg transition">
-            <svg class="w-8 h-8 text-${color}-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon}"/>
-            </svg>
-            <span class="text-sm font-medium text-gray-700">${label}</span>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm p-6">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
-      <div id="recentActivity"></div>
-    </div>
-  `;
-  
-  loadRecentActivity();
-}
-
-// Continue in next part with Expenses, Bank, Balance Sheet, P&L tabs (keeping same as before)...
-// ============================================================================
 // QUICK BOOKS COMPLETE SYSTEM - ALL PHASES ✅
 // Phase 1: Dashboard ✅ | Phase 2A: Expenses ✅ | Phase 2B: Bank ✅
 // Phase 2C: Balance Sheet ✅ | Phase 2D: P&L ✅ | Phase 2E: Export ✅
@@ -1762,10 +1510,12 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================================================
-// FIXED ASSETS TAB - PHASE 3A ✅ NEW FEATURE!
+// FIXED ASSETS TAB - WORKING VERSION
 // ============================================================================
 
-async function loadAssetsTab(container) {
+// Override the placeholder assets tab with full functionality
+const originalLoadAssetsTab = loadAssetsTab;
+loadAssetsTab = async function(container) {
   const assets = await db.assets.toArray();
   const today = new Date();
   
@@ -1897,12 +1647,6 @@ async function loadAssetsTab(container) {
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
                   </button>
-                  <button onclick="viewAssetDetails(${asset.id})" class="btn-icon btn-info btn-sm ml-2" title="View Details">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                  </button>
                   <button onclick="deleteAsset(${asset.id})" class="btn-icon btn-danger btn-sm ml-2" title="Delete">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -1916,13 +1660,10 @@ async function loadAssetsTab(container) {
       </div>
     </div>
   `;
-}
+};
 
-// ============================================================================
-// ASSET MODAL
-// ============================================================================
-
-function openAssetModal(assetId = null) {
+// Asset modal and functions
+window.openAssetModal = function(assetId = null) {
   const isEdit = assetId !== null;
   
   const modalHTML = `
@@ -1995,12 +1736,6 @@ function openAssetModal(assetId = null) {
               <textarea id="assetNotes" class="form-textarea" placeholder="Additional details (optional)" rows="3"></textarea>
             </div>
             
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-4">
-              <p class="text-sm text-blue-800">
-                <strong>Depreciation Info:</strong> The system will automatically calculate the current value based on the purchase date and depreciation rate. The asset value decreases by the specified percentage each year.
-              </p>
-            </div>
-            
             <div class="modal-footer">
               <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
               <button type="submit" class="btn btn-primary">
@@ -2018,7 +1753,7 @@ function openAssetModal(assetId = null) {
   
   document.getElementById('modalContainer').innerHTML = modalHTML;
   if (isEdit) loadAssetData(assetId);
-}
+};
 
 async function loadAssetData(id) {
   try {
@@ -2037,7 +1772,7 @@ async function loadAssetData(id) {
   }
 }
 
-async function saveAsset(event, assetId) {
+window.saveAsset = async function(event, assetId) {
   event.preventDefault();
   
   const assetData = {
@@ -2071,15 +1806,16 @@ async function saveAsset(event, assetId) {
     closeModal();
     switchTab('assets');
   } catch (error) {
+    console.error('Save asset error:', error);
     showMessage('Error saving asset', 'error');
   }
-}
+};
 
-function editAsset(id) {
+window.editAsset = function(id) {
   openAssetModal(id);
-}
+};
 
-async function deleteAsset(id) {
+window.deleteAsset = async function(id) {
   if (!confirm('Delete this asset? This action cannot be undone.')) return;
   
   try {
@@ -2089,147 +1825,6 @@ async function deleteAsset(id) {
   } catch (error) {
     showMessage('Error deleting asset', 'error');
   }
-}
+};
 
-// ============================================================================
-// ASSET DETAILS MODAL
-// ============================================================================
-
-async function viewAssetDetails(id) {
-  try {
-    const asset = await db.assets.get(id);
-    if (!asset) return;
-    
-    const purchaseDate = new Date(asset.purchaseDate);
-    const today = new Date();
-    const yearsOwned = (today - purchaseDate) / (365.25 * 24 * 60 * 60 * 1000);
-    const depreciationAmount = asset.purchasePrice * (asset.depRate / 100) * yearsOwned;
-    const currentValue = Math.max(0, asset.purchasePrice - depreciationAmount);
-    const depreciationPercent = ((depreciationAmount / asset.purchasePrice) * 100).toFixed(2);
-    
-    // Generate depreciation schedule for next 10 years
-    let scheduleHTML = '';
-    for (let year = 0; year <= 10; year++) {
-      const yearDate = new Date(purchaseDate);
-      yearDate.setFullYear(purchaseDate.getFullYear() + year);
-      const yearDep = asset.purchasePrice * (asset.depRate / 100) * year;
-      const yearValue = Math.max(0, asset.purchasePrice - yearDep);
-      const isPast = year < Math.floor(yearsOwned);
-      const isCurrent = year === Math.floor(yearsOwned);
-      
-      scheduleHTML += `
-        <tr class="${isPast ? 'bg-gray-50' : isCurrent ? 'bg-blue-50 font-semibold' : ''}">
-          <td>${yearDate.getFullYear()}${isCurrent ? ' (Now)' : ''}</td>
-          <td class="text-right">₹${yearValue.toLocaleString('en-IN')}</td>
-          <td class="text-right">₹${yearDep.toLocaleString('en-IN')}</td>
-          <td class="text-right">${((yearDep / asset.purchasePrice) * 100).toFixed(2)}%</td>
-        </tr>
-      `;
-    }
-    
-    const modalHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
-        <div class="modal-container" style="max-width: 900px;">
-          <div class="modal-header">
-            <h2 class="modal-title">Asset Details - ${asset.name}</h2>
-            <button class="modal-close" onclick="closeModal()">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div class="bg-purple-50 rounded-lg p-6 border-l-4 border-purple-500">
-                <h3 class="text-sm font-semibold text-purple-900 mb-4">Asset Information</h3>
-                <div class="space-y-2">
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Category:</span>
-                    <span class="font-medium">${asset.category}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Location:</span>
-                    <span class="font-medium">${asset.location || 'Not specified'}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Purchase Date:</span>
-                    <span class="font-medium">${formatDate(asset.purchaseDate)}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Age:</span>
-                    <span class="font-medium">${yearsOwned.toFixed(2)} years</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="bg-blue-50 rounded-lg p-6 border-l-4 border-blue-500">
-                <h3 class="text-sm font-semibold text-blue-900 mb-4">Valuation</h3>
-                <div class="space-y-2">
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Purchase Price:</span>
-                    <span class="font-medium">₹${asset.purchasePrice.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Depreciation Rate:</span>
-                    <span class="font-medium">${asset.depRate}% per year</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Total Depreciation:</span>
-                    <span class="font-medium text-orange-600">₹${depreciationAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div class="flex justify-between border-t pt-2">
-                    <span class="text-gray-900 font-semibold">Current Value:</span>
-                    <span class="font-bold text-green-600">₹${currentValue.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            ${asset.notes ? `
-              <div class="bg-yellow-50 rounded-lg p-4 mb-6 border-l-4 border-yellow-500">
-                <h3 class="text-sm font-semibold text-yellow-900 mb-2">Notes</h3>
-                <p class="text-sm text-gray-700">${asset.notes}</p>
-              </div>
-            ` : ''}
-
-            <div class="bg-white rounded-lg border border-gray-200">
-              <div class="p-4 border-b border-gray-200 bg-gray-50">
-                <h3 class="text-lg font-semibold text-gray-800">Depreciation Schedule (10 Years)</h3>
-                <p class="text-sm text-gray-600 mt-1">Projected values based on ${asset.depRate}% annual depreciation</p>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Year</th>
-                      <th class="text-right">Value</th>
-                      <th class="text-right">Depreciation</th>
-                      <th class="text-right">Depreciation %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${scheduleHTML}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="mt-6 modal-footer">
-              <button onclick="closeModal()" class="btn btn-secondary">Close</button>
-              <button onclick="closeModal(); editAsset(${id})" class="btn btn-primary">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
-                Edit Asset
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.getElementById('modalContainer').innerHTML = modalHTML;
-  } catch (error) {
-    showMessage('Error loading asset details', 'error');
-  }
-}
+console.log('✅ Fixed Assets Module Loaded!');
