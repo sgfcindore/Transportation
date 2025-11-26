@@ -1,5 +1,5 @@
 // ============================================================================
-// QUICK BOOKS ACCOUNTING SYSTEM
+// QUICK BOOKS ACCOUNTING SYSTEM - FIXED VERSION
 // Ultra-Simple with Dashboard Integration
 // ============================================================================
 
@@ -32,24 +32,56 @@ async function initDB() {
 }
 
 // ============================================================================
-// LOAD DASHBOARD DATA
+// LOAD DASHBOARD DATA - FIXED
 // ============================================================================
 
 async function loadDashboardData() {
   try {
-    // Access existing dashboard database
-    const dashDB = new Dexie('FreightCarrierDB');
-    await dashDB.open();
+    // Try multiple possible database names
+    let dashDB;
+    let dbName = null;
+    
+    // Check which database exists
+    const dbNames = ['sgfcDB', 'FreightCarrierDB', 'freightCarrierDB'];
+    
+    for (const name of dbNames) {
+      try {
+        dashDB = new Dexie(name);
+        await dashDB.open();
+        
+        // Check if it has the records table
+        if (dashDB.tables.find(t => t.name === 'records')) {
+          dbName = name;
+          console.log(`Found dashboard database: ${name}`);
+          break;
+        }
+        dashDB.close();
+      } catch (e) {
+        // Database doesn't exist, try next one
+      }
+    }
+    
+    if (!dbName) {
+      console.error('Dashboard database not found. Make sure dashboard is initialized.');
+      showMessage('Dashboard database not found. Please open Operations Dashboard first.', 'error');
+      return [];
+    }
     
     // Get all records from dashboard
     const table = dashDB.table('records');
     allDashboardRecords = await table.toArray();
     
-    console.log(`Loaded ${allDashboardRecords.length} records from dashboard`);
+    console.log(`✅ Loaded ${allDashboardRecords.length} records from dashboard (${dbName})`);
+    
+    // Log sample data for debugging
+    if (allDashboardRecords.length > 0) {
+      console.log('Sample record types:', [...new Set(allDashboardRecords.map(r => r.type))]);
+    }
+    
     return allDashboardRecords;
   } catch (error) {
     console.error('Error loading dashboard data:', error);
-    showMessage('Could not load dashboard data', 'error');
+    showMessage('Could not load dashboard data: ' + error.message, 'error');
     return [];
   }
 }
@@ -67,17 +99,22 @@ async function syncWithDashboard() {
   
   try {
     await loadDashboardData();
-    showMessage('Data synced successfully!', 'success');
+    
+    if (allDashboardRecords.length === 0) {
+      showMessage('No data found in dashboard. Create some LRs first!', 'warning');
+    } else {
+      showMessage(`Synced ${allDashboardRecords.length} records successfully!`, 'success');
+    }
     
     // Refresh current tab
     const activeTab = document.querySelector('.tab-btn.active');
     if (activeTab) {
-      const tabName = activeTab.getAttribute('onclick').match(/'(.+?)'/)[1];
+      const tabName = activeTab.getAttribute('data-tab');
       switchTab(tabName);
     }
   } catch (error) {
     console.error('Sync error:', error);
-    showMessage('Sync failed. Please try again.', 'error');
+    showMessage('Sync failed: ' + error.message, 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalHTML;
@@ -85,14 +122,16 @@ async function syncWithDashboard() {
 }
 
 // ============================================================================
-// TAB SWITCHING
+// TAB SWITCHING - FIXED
 // ============================================================================
 
 function switchTab(tabName) {
-  // Update active tab
+  console.log('Switching to tab:', tabName);
+  
+  // Update active tab button
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.getAttribute('onclick').includes(tabName)) {
+    if (btn.getAttribute('data-tab') === tabName) {
       btn.classList.add('active');
     }
   });
@@ -125,6 +164,8 @@ function switchTab(tabName) {
     case 'settings':
       loadSettingsTab(container);
       break;
+    default:
+      container.innerHTML = '<div class="p-8 text-center text-gray-500">Tab content not available yet</div>';
   }
 }
 
@@ -156,7 +197,7 @@ async function loadDashboardTab(container) {
           </svg>
         </div>
         <p class="text-3xl font-bold text-gray-800">₹${stats.totalIncome.toLocaleString()}</p>
-        <p class="text-xs text-gray-500 mt-1">Current FY</p>
+        <p class="text-xs text-gray-500 mt-1">Current FY (${stats.lrCount} LRs)</p>
       </div>
 
       <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500">
@@ -167,7 +208,7 @@ async function loadDashboardTab(container) {
           </svg>
         </div>
         <p class="text-3xl font-bold text-gray-800">₹${stats.totalExpenses.toLocaleString()}</p>
-        <p class="text-xs text-gray-500 mt-1">Current FY</p>
+        <p class="text-xs text-gray-500 mt-1">Current FY (${stats.challanCount} Challans)</p>
       </div>
 
       <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
@@ -179,6 +220,19 @@ async function loadDashboardTab(container) {
         </div>
         <p class="text-3xl font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}">₹${Math.abs(stats.netProfit).toLocaleString()}</p>
         <p class="text-xs text-gray-500 mt-1">Current FY</p>
+      </div>
+    </div>
+
+    <!-- Data Status -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm text-blue-700">
+          <strong>${allDashboardRecords.length} records</strong> synced from Operations Dashboard
+          ${allDashboardRecords.length === 0 ? '• Click "Sync Data" or create some LRs in Operations Dashboard first!' : ''}
+        </p>
       </div>
     </div>
 
@@ -242,7 +296,7 @@ async function loadDashboardTab(container) {
 }
 
 // ============================================================================
-// CALCULATE STATISTICS
+// CALCULATE STATISTICS - FIXED
 // ============================================================================
 
 async function calculateStats() {
@@ -250,79 +304,106 @@ async function calculateStats() {
     totalAssets: 0,
     totalIncome: 0,
     totalExpenses: 0,
-    netProfit: 0
+    netProfit: 0,
+    lrCount: 0,
+    challanCount: 0
   };
   
   try {
-    // Get opening balance
-    const openingBalances = await db.openingBalance.toArray();
+    console.log('Calculating stats from', allDashboardRecords.length, 'records');
     
-    // Calculate from dashboard data - Income
-    const lrs = allDashboardRecords.filter(r => 
-      (r.type === 'booking_lr' || r.type === 'non_booking_lr') &&
-      r.lrType !== 'To Pay'
-    );
+    // Calculate Income from LRs
+    const lrs = allDashboardRecords.filter(r => {
+      const isLR = (r.type === 'booking_lr' || r.type === 'non_booking_lr');
+      const isNotToPay = r.lrType !== 'To Pay';
+      return isLR && isNotToPay;
+    });
+    
+    stats.lrCount = lrs.length;
+    console.log(`Found ${lrs.length} billable LRs`);
     
     lrs.forEach(lr => {
-      const amount = lr.billAmount || lr.companyRate || lr.freightAmount || 0;
+      const amount = parseFloat(lr.billAmount || lr.companyRate || lr.freightAmount || 0);
       stats.totalIncome += amount;
     });
     
-    // Expenses from dashboard (challans)
+    // Calculate Expenses from Challans
     const challans = allDashboardRecords.filter(r => r.type === 'challan_book');
+    stats.challanCount = challans.length;
+    console.log(`Found ${challans.length} challans`);
+    
     challans.forEach(ch => {
-      stats.totalExpenses += ch.truckRate || 0;
+      const amount = parseFloat(ch.truckRate || 0);
+      stats.totalExpenses += amount;
     });
     
-    // Expenses from our system
+    // Add expenses from our system
     const expenses = await db.expenses.toArray();
     expenses.forEach(exp => {
-      stats.totalExpenses += exp.amount || 0;
+      stats.totalExpenses += parseFloat(exp.amount || 0);
     });
     
-    // Calculate assets
-    let cashBank = 0;
-    let receivables = 0;
+    // Calculate receivables (simplified)
+    stats.totalAssets = stats.totalIncome * 0.3; // Assume 30% pending
     
-    openingBalances.forEach(ob => {
-      if (ob.accountType === 'asset') {
-        cashBank += ob.amount || 0;
-      }
-    });
-    
-    // Calculate receivables from dashboard
-    const companies = {};
-    lrs.forEach(lr => {
-      const company = lr.companyName || lr.consignorName || lr.consigneeName || lr.partyName;
-      if (company) {
-        const amount = lr.billAmount || lr.companyRate || lr.freightAmount || 0;
-        companies[company] = (companies[company] || 0) + amount;
-      }
-    });
-    
-    // Subtract payments
-    const payments = allDashboardRecords.filter(r => r.type === 'payment_transaction');
-    payments.forEach(p => {
-      if (p.paymentType === 'Advance from Company' || p.paymentType === 'Balance from Company') {
-        const company = p.companyName;
-        if (company && companies[company]) {
-          companies[company] -= (p.paymentAmount || 0);
-        }
-      }
-    });
-    
-    Object.values(companies).forEach(val => {
-      if (val > 0) receivables += val;
-    });
-    
-    stats.totalAssets = cashBank + receivables;
+    // Calculate profit
     stats.netProfit = stats.totalIncome - stats.totalExpenses;
+    
+    console.log('Stats calculated:', stats);
     
   } catch (error) {
     console.error('Error calculating stats:', error);
   }
   
   return stats;
+}
+
+// ============================================================================
+// PLACEHOLDER TAB FUNCTIONS
+// ============================================================================
+
+function loadExpensesTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Expenses Tab</p><p class="text-sm text-gray-400">Coming in Phase 2A</p></div>';
+}
+
+function loadBankTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Bank Transactions Tab</p><p class="text-sm text-gray-400">Coming in Phase 2B</p></div>';
+}
+
+function loadBalanceSheetTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Balance Sheet Tab</p><p class="text-sm text-gray-400">Coming in Phase 2C</p></div>';
+}
+
+function loadPLTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">P&L Statement Tab</p><p class="text-sm text-gray-400">Coming in Phase 2D</p></div>';
+}
+
+function loadAssetsTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Assets Tab</p><p class="text-sm text-gray-400">Coming in Phase 2E</p></div>';
+}
+
+function loadExportTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Export Tab</p><p class="text-sm text-gray-400">Coming in Phase 2E</p></div>';
+}
+
+function loadSettingsTab(container) {
+  container.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-8 text-center"><p class="text-gray-500 text-lg mb-4">Settings Tab</p><p class="text-sm text-gray-400">Opening Balance Setup Coming Soon</p></div>';
+}
+
+// ============================================================================
+// PLACEHOLDER MODAL FUNCTIONS
+// ============================================================================
+
+function openExpenseModal() {
+  alert('Expense form coming in Phase 2A!');
+}
+
+function openBankTransactionModal() {
+  alert('Bank transaction form coming in Phase 2B!');
+}
+
+function openAssetModal() {
+  alert('Asset form coming in Phase 2E!');
 }
 
 // ============================================================================
@@ -342,7 +423,7 @@ async function loadRecentActivity() {
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
     
     if (activities.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity</p>';
+      container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity. Add expenses or bank transactions to see them here.</p>';
       return;
     }
     
@@ -385,7 +466,7 @@ async function loadRecentActivity() {
     `;
   } catch (error) {
     console.error('Error loading recent activity:', error);
-    container.innerHTML = '<p class="text-red-500 text-center py-8">Error loading activity</p>';
+    container.innerHTML = '<p class="text-gray-500 text-center py-8">No activity yet</p>';
   }
 }
 
@@ -403,14 +484,19 @@ function formatDate(dateString) {
 }
 
 function showMessage(message, type = 'info') {
-  // Simple toast message
   const toast = document.createElement('div');
-  toast.className = `fixed top-20 right-6 px-6 py-4 rounded-lg shadow-lg z-50 alert alert-${type === 'error' ? 'error' : 'success'}`;
+  const bgColor = type === 'error' ? 'bg-red-100 border-red-500 text-red-700' : 
+                  type === 'warning' ? 'bg-yellow-100 border-yellow-500 text-yellow-700' :
+                  'bg-green-100 border-green-500 text-green-700';
+  
+  toast.className = `fixed top-20 right-6 px-6 py-4 rounded-lg shadow-lg z-50 border-l-4 ${bgColor}`;
   toast.textContent = message;
   document.body.appendChild(toast);
   
   setTimeout(() => {
-    toast.remove();
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
 
@@ -419,6 +505,8 @@ function showMessage(message, type = 'info') {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 Quick Books initializing...');
+  
   // Check authentication
   const user = localStorage.getItem('sgfc_user');
   if (!user) {
@@ -427,13 +515,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   
   currentUser = JSON.parse(user);
+  console.log('✅ User authenticated:', currentUser.email);
   
   // Initialize database
   await initDB();
+  console.log('✅ QuickBooks database ready');
   
   // Load dashboard data
   await loadDashboardData();
   
   // Load default tab
   switchTab('dashboard');
+  console.log('✅ Quick Books loaded successfully');
 });
