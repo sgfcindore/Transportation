@@ -1,5 +1,5 @@
 // ============================================================================
-// QUICK BOOKS - PHASE 2A: EXPENSE TRACKING COMPLETE
+// QUICK BOOKS - PHASE 2B: BANK TRANSACTIONS COMPLETE
 // ============================================================================
 
 let db;
@@ -33,15 +33,11 @@ async function initDB() {
 
 async function loadDashboardData() {
   try {
-    console.log('🔍 Loading dashboard data...');
-    
     const possibleDBNames = [
       'sgfcDB', 'FreightCarrierDB', 'freightCarrierDB',
       'SGFCDB', 'dashboardDB', 'DashboardDB',
       'sgfc', 'SGFC', 'transportDB', 'lrDB'
     ];
-    
-    let foundDB = null;
     
     for (const dbName of possibleDBNames) {
       try {
@@ -53,25 +49,19 @@ async function loadDashboardData() {
           const count = await recordsTable.count();
           
           if (count > 0) {
-            foundDB = testDB;
             allDashboardRecords = await recordsTable.toArray();
             console.log(`✅ Loaded ${allDashboardRecords.length} records from "${dbName}"`);
+            testDB.close();
             break;
           }
         }
         testDB.close();
       } catch (error) {
-        // Continue to next database
+        // Continue to next
       }
     }
     
-    if (!foundDB) {
-      console.log('⚠️ No dashboard database found');
-      allDashboardRecords = [];
-    }
-    
     return allDashboardRecords;
-    
   } catch (error) {
     console.error('Error loading dashboard data:', error);
     return [];
@@ -104,7 +94,6 @@ async function syncWithDashboard() {
       switchTab(tabName);
     }
   } catch (error) {
-    console.error('Sync error:', error);
     showMessage('Sync failed', 'error');
   } finally {
     btn.disabled = false;
@@ -169,7 +158,6 @@ async function calculateStats() {
   };
   
   try {
-    // Income from LRs
     const lrs = allDashboardRecords.filter(r => {
       const isLR = (r.type === 'booking_lr' || r.type === 'non_booking_lr');
       const isNotToPay = r.lrType !== 'To Pay';
@@ -181,14 +169,12 @@ async function calculateStats() {
       stats.totalIncome += parseFloat(lr.billAmount || lr.companyRate || lr.freightAmount || 0);
     });
     
-    // Expenses from Challans
     const challans = allDashboardRecords.filter(r => r.type === 'challan_book');
     stats.challanCount = challans.length;
     challans.forEach(ch => {
       stats.totalExpenses += parseFloat(ch.truckRate || 0);
     });
     
-    // Add QuickBooks expenses
     const qbExpenses = await db.expenses.toArray();
     qbExpenses.forEach(exp => {
       stats.totalExpenses += parseFloat(exp.amount || 0);
@@ -271,32 +257,32 @@ async function loadDashboardTab(container) {
           <span class="text-sm font-medium text-gray-700">Add Expense</span>
         </button>
 
-        <button onclick="switchTab('expenses')" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+        <button onclick="openBankTransactionModal()" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
           <svg class="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          <span class="text-sm font-medium text-gray-700">Bank Entry</span>
+        </button>
+
+        <button onclick="switchTab('expenses')" class="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
+          <svg class="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
           </svg>
           <span class="text-sm font-medium text-gray-700">View Expenses</span>
         </button>
 
-        <button onclick="openBankTransactionModal()" class="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
-          <svg class="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onclick="switchTab('bank')" class="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition">
+          <svg class="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
           </svg>
-          <span class="text-sm font-medium text-gray-700">Bank Entry</span>
+          <span class="text-sm font-medium text-gray-700">View Bank</span>
         </button>
 
-        <button onclick="switchTab('balance-sheet')" class="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition">
-          <svg class="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onclick="switchTab('balance-sheet')" class="flex flex-col items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-lg transition">
+          <svg class="w-8 h-8 text-teal-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
           </svg>
           <span class="text-sm font-medium text-gray-700">Balance Sheet</span>
-        </button>
-
-        <button onclick="switchTab('pl-statement')" class="flex flex-col items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-lg transition">
-          <svg class="w-8 h-8 text-teal-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-          </svg>
-          <span class="text-sm font-medium text-gray-700">P&L</span>
         </button>
 
         <button onclick="switchTab('export')" class="flex flex-col items-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition">
@@ -319,18 +305,12 @@ async function loadDashboardTab(container) {
 }
 
 // ============================================================================
-// EXPENSES TAB - PHASE 2A ✅
+// EXPENSES TAB
 // ============================================================================
 
 async function loadExpensesTab(container) {
   const expenses = await db.expenses.toArray();
   expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  // Calculate totals by category
-  const categoryTotals = {};
-  expenses.forEach(exp => {
-    categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
-  });
   
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   
@@ -368,9 +348,9 @@ async function loadExpensesTab(container) {
         </div>
 
         <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
-          <p class="text-sm text-purple-600 font-medium mb-1">Top Category</p>
-          <p class="text-2xl font-bold text-purple-900">${Object.keys(categoryTotals).length > 0 ? Object.entries(categoryTotals).sort((a,b) => b[1] - a[1])[0][0] : 'None'}</p>
-          <p class="text-xs text-purple-600 mt-1">${Object.keys(categoryTotals).length} categories</p>
+          <p class="text-sm text-purple-600 font-medium mb-1">Categories</p>
+          <p class="text-2xl font-bold text-purple-900">${[...new Set(expenses.map(e => e.category))].length}</p>
+          <p class="text-xs text-purple-600 mt-1">Expense categories used</p>
         </div>
       </div>
       
@@ -396,7 +376,7 @@ async function loadExpensesTab(container) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                   </svg>
                   <p>No expenses added yet</p>
-                  <small>Click "Add Expense" to start tracking your business expenses</small>
+                  <small>Click "Add Expense" to start tracking</small>
                 </td>
               </tr>
             ` : expenses.map(exp => `
@@ -429,7 +409,315 @@ async function loadExpensesTab(container) {
 }
 
 // ============================================================================
-// EXPENSE MODAL
+// BANK TAB - PHASE 2B ✅
+// ============================================================================
+
+async function loadBankTab(container) {
+  const transactions = await db.bankTransactions.toArray();
+  transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  // Calculate bank-wise balances
+  const bankTotals = {
+    'HDFC': { credit: 0, debit: 0, balance: 0, count: 0 },
+    'ICICI': { credit: 0, debit: 0, balance: 0, count: 0 },
+    'SBI': { credit: 0, debit: 0, balance: 0, count: 0 }
+  };
+  
+  transactions.forEach(txn => {
+    if (bankTotals[txn.bank]) {
+      bankTotals[txn.bank].count++;
+      if (txn.type === 'Credit') {
+        bankTotals[txn.bank].credit += txn.amount;
+        bankTotals[txn.bank].balance += txn.amount;
+      } else {
+        bankTotals[txn.bank].debit += txn.amount;
+        bankTotals[txn.bank].balance -= txn.amount;
+      }
+    }
+  });
+  
+  const totalBalance = Object.values(bankTotals).reduce((sum, b) => sum + b.balance, 0);
+  
+  container.innerHTML = `
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800">Bank Transactions</h2>
+          <p class="text-sm text-gray-500 mt-1">Track transactions across 3 bank accounts</p>
+        </div>
+        <button onclick="openBankTransactionModal()" class="btn btn-primary">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          Add Transaction
+        </button>
+      </div>
+
+      <!-- Bank Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+          <p class="text-sm font-medium mb-2 opacity-90">HDFC Bank</p>
+          <p class="text-3xl font-bold mb-2">₹${bankTotals.HDFC.balance.toLocaleString('en-IN')}</p>
+          <div class="flex justify-between text-xs opacity-75">
+            <span>↑ ₹${bankTotals.HDFC.credit.toLocaleString('en-IN')}</span>
+            <span>↓ ₹${bankTotals.HDFC.debit.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+          <p class="text-sm font-medium mb-2 opacity-90">ICICI Bank</p>
+          <p class="text-3xl font-bold mb-2">₹${bankTotals.ICICI.balance.toLocaleString('en-IN')}</p>
+          <div class="flex justify-between text-xs opacity-75">
+            <span>↑ ₹${bankTotals.ICICI.credit.toLocaleString('en-IN')}</span>
+            <span>↓ ₹${bankTotals.ICICI.debit.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+          <p class="text-sm font-medium mb-2 opacity-90">SBI Bank</p>
+          <p class="text-3xl font-bold mb-2">₹${bankTotals.SBI.balance.toLocaleString('en-IN')}</p>
+          <div class="flex justify-between text-xs opacity-75">
+            <span>↑ ₹${bankTotals.SBI.credit.toLocaleString('en-IN')}</span>
+            <span>↓ ₹${bankTotals.SBI.debit.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+          <p class="text-sm font-medium mb-2 opacity-90">Total Balance</p>
+          <p class="text-3xl font-bold mb-2">₹${totalBalance.toLocaleString('en-IN')}</p>
+          <p class="text-xs opacity-75">${transactions.length} transactions</p>
+        </div>
+      </div>
+      
+      <!-- Transactions Table -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Bank</th>
+              <th>Type</th>
+              <th>Party</th>
+              <th>Purpose</th>
+              <th>Reference</th>
+              <th class="text-right">Amount</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${transactions.length === 0 ? `
+              <tr>
+                <td colspan="8" class="empty-state">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                  <p>No bank transactions added yet</p>
+                  <small>Click "Add Transaction" to start tracking bank entries</small>
+                </td>
+              </tr>
+            ` : transactions.map(txn => `
+              <tr>
+                <td>${formatDate(txn.date)}</td>
+                <td><span class="badge ${txn.bank === 'HDFC' ? 'badge-info' : txn.bank === 'ICICI' ? 'badge-warning' : 'badge-success'}">${txn.bank}</span></td>
+                <td><span class="badge ${txn.type === 'Credit' ? 'badge-success' : 'badge-danger'}">${txn.type}</span></td>
+                <td>${txn.party}</td>
+                <td>${txn.purpose}</td>
+                <td>${txn.reference || '-'}</td>
+                <td class="text-right amount ${txn.type === 'Credit' ? 'positive' : 'negative'}">₹${txn.amount.toLocaleString('en-IN')}</td>
+                <td class="text-center">
+                  <button onclick="editBankTransaction(${txn.id})" class="btn-icon btn-secondary btn-sm" title="Edit">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  <button onclick="deleteBankTransaction(${txn.id})" class="btn-icon btn-danger btn-sm ml-2" title="Delete">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// BANK TRANSACTION MODAL
+// ============================================================================
+
+function openBankTransactionModal(txnId = null) {
+  const isEdit = txnId !== null;
+  
+  const modalHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 class="modal-title">${isEdit ? 'Edit' : 'Add'} Bank Transaction</h2>
+          <button class="modal-close" onclick="closeModal()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="bankTransactionForm" onsubmit="saveBankTransaction(event, ${txnId})">
+            <div class="form-group">
+              <label class="form-label required">Date</label>
+              <input type="date" id="bankDate" class="form-input" required value="${new Date().toISOString().split('T')[0]}" max="${new Date().toISOString().split('T')[0]}">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">Bank Account</label>
+              <select id="bankName" class="form-select" required>
+                <option value="">Select Bank</option>
+                <option value="HDFC">HDFC Bank</option>
+                <option value="ICICI">ICICI Bank</option>
+                <option value="SBI">State Bank of India (SBI)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">Transaction Type</label>
+              <select id="bankType" class="form-select" required>
+                <option value="">Select Type</option>
+                <option value="Credit">Credit (Money In)</option>
+                <option value="Debit">Debit (Money Out)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">Amount</label>
+              <input type="number" id="bankAmount" class="form-input" required min="0" step="0.01" placeholder="Enter amount">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">Party Name</label>
+              <input type="text" id="bankParty" class="form-input" required placeholder="Company/Person name">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">Purpose</label>
+              <input type="text" id="bankPurpose" class="form-input" required placeholder="Payment received, Vendor payment, etc.">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Reference/Cheque Number</label>
+              <input type="text" id="bankReference" class="form-input" placeholder="Transaction ref, Cheque no (optional)">
+            </div>
+            
+            <div class="modal-footer">
+              <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Save Transaction
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modalContainer').innerHTML = modalHTML;
+  
+  if (isEdit) {
+    loadBankTransactionData(txnId);
+  }
+}
+
+// ============================================================================
+// LOAD BANK TRANSACTION DATA
+// ============================================================================
+
+async function loadBankTransactionData(id) {
+  try {
+    const txn = await db.bankTransactions.get(id);
+    if (txn) {
+      document.getElementById('bankDate').value = txn.date;
+      document.getElementById('bankName').value = txn.bank;
+      document.getElementById('bankType').value = txn.type;
+      document.getElementById('bankAmount').value = txn.amount;
+      document.getElementById('bankParty').value = txn.party;
+      document.getElementById('bankPurpose').value = txn.purpose;
+      document.getElementById('bankReference').value = txn.reference || '';
+    }
+  } catch (error) {
+    console.error('Error loading bank transaction:', error);
+    showMessage('Error loading transaction data', 'error');
+  }
+}
+
+// ============================================================================
+// SAVE BANK TRANSACTION
+// ============================================================================
+
+async function saveBankTransaction(event, txnId) {
+  event.preventDefault();
+  
+  const txnData = {
+    date: document.getElementById('bankDate').value,
+    bank: document.getElementById('bankName').value,
+    type: document.getElementById('bankType').value,
+    amount: parseFloat(document.getElementById('bankAmount').value),
+    party: document.getElementById('bankParty').value,
+    purpose: document.getElementById('bankPurpose').value,
+    reference: document.getElementById('bankReference').value,
+    updatedAt: new Date().toISOString()
+  };
+  
+  try {
+    if (txnId) {
+      await db.bankTransactions.update(txnId, txnData);
+      showMessage('Transaction updated successfully!', 'success');
+    } else {
+      txnData.createdAt = new Date().toISOString();
+      await db.bankTransactions.add(txnData);
+      showMessage('Transaction added successfully!', 'success');
+    }
+    
+    closeModal();
+    switchTab('bank');
+  } catch (error) {
+    console.error('Error saving transaction:', error);
+    showMessage('Error saving transaction', 'error');
+  }
+}
+
+// ============================================================================
+// EDIT BANK TRANSACTION
+// ============================================================================
+
+function editBankTransaction(id) {
+  openBankTransactionModal(id);
+}
+
+// ============================================================================
+// DELETE BANK TRANSACTION
+// ============================================================================
+
+async function deleteBankTransaction(id) {
+  if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    await db.bankTransactions.delete(id);
+    showMessage('Transaction deleted successfully!', 'success');
+    switchTab('bank');
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    showMessage('Error deleting transaction', 'error');
+  }
+}
+
+// ============================================================================
+// EXPENSE MODAL (FROM PHASE 2A)
 // ============================================================================
 
 function openExpenseModal(expenseId = null) {
@@ -530,10 +818,6 @@ function openExpenseModal(expenseId = null) {
   }
 }
 
-// ============================================================================
-// LOAD EXPENSE DATA FOR EDITING
-// ============================================================================
-
 async function loadExpenseData(id) {
   try {
     const expense = await db.expenses.get(id);
@@ -551,10 +835,6 @@ async function loadExpenseData(id) {
     showMessage('Error loading expense data', 'error');
   }
 }
-
-// ============================================================================
-// SAVE EXPENSE
-// ============================================================================
 
 async function saveExpense(event, expenseId) {
   event.preventDefault();
@@ -588,17 +868,9 @@ async function saveExpense(event, expenseId) {
   }
 }
 
-// ============================================================================
-// EDIT EXPENSE
-// ============================================================================
-
 function editExpense(id) {
   openExpenseModal(id);
 }
-
-// ============================================================================
-// DELETE EXPENSE
-// ============================================================================
 
 async function deleteExpense(id) {
   if (!confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
@@ -615,30 +887,13 @@ async function deleteExpense(id) {
   }
 }
 
-// ============================================================================
-// CLOSE MODAL
-// ============================================================================
-
 function closeModal() {
   document.getElementById('modalContainer').innerHTML = '';
 }
 
 // ============================================================================
-// PLACEHOLDER TAB FUNCTIONS (Coming in Phase 2B, 2C, etc.)
+// PLACEHOLDER TAB FUNCTIONS
 // ============================================================================
-
-function loadBankTab(container) {
-  container.innerHTML = `
-    <div class="bg-white rounded-xl shadow-sm p-12 text-center">
-      <svg class="w-16 h-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-      </svg>
-      <h3 class="text-xl font-semibold text-gray-800 mb-2">Bank Transactions</h3>
-      <p class="text-gray-500 mb-4">Phase 2B - Coming Next!</p>
-      <p class="text-sm text-gray-400">Track transactions across 3 bank accounts</p>
-    </div>
-  `;
-}
 
 function loadBalanceSheetTab(container) {
   container.innerHTML = `
@@ -647,7 +902,7 @@ function loadBalanceSheetTab(container) {
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
       </svg>
       <h3 class="text-xl font-semibold text-gray-800 mb-2">Balance Sheet</h3>
-      <p class="text-gray-500 mb-4">Phase 2C</p>
+      <p class="text-gray-500 mb-4">Phase 2C - Coming Next!</p>
       <p class="text-sm text-gray-400">Auto-generated with opening balance setup</p>
     </div>
   `;
@@ -706,14 +961,6 @@ function loadSettingsTab(container) {
   `;
 }
 
-function openBankTransactionModal() {
-  showMessage('Bank transactions coming in Phase 2B!', 'info');
-}
-
-function openAssetModal() {
-  showMessage('Asset management coming in Phase 2E!', 'info');
-}
-
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -722,29 +969,45 @@ async function loadRecentActivity() {
   const container = document.getElementById('recentActivity');
   
   try {
-    const expenses = await db.expenses.orderBy('createdAt').reverse().limit(10).toArray();
+    const expenses = await db.expenses.orderBy('createdAt').reverse().limit(5).toArray();
+    const bankTxns = await db.bankTransactions.orderBy('createdAt').reverse().limit(5).toArray();
     
-    if (expenses.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity. Start by adding expenses!</p>';
+    const activities = [
+      ...expenses.map(e => ({...e, activityType: 'expense'})),
+      ...bankTxns.map(b => ({...b, activityType: 'bank'}))
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
+    
+    if (activities.length === 0) {
+      container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity. Start by adding expenses or bank transactions!</p>';
       return;
     }
     
-    container.innerHTML = '<div class="space-y-3">' + expenses.map(exp => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer" onclick="editExpense(${exp.id})">
+    container.innerHTML = '<div class="space-y-3">' + activities.map(activity => `
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer" onclick="${activity.activityType === 'expense' ? `editExpense(${activity.id})` : `editBankTransaction(${activity.id})`}">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-            </svg>
-          </div>
+          ${activity.activityType === 'expense' ? `
+            <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+          ` : `
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+            </div>
+          `}
           <div>
-            <p class="font-medium text-gray-800">${exp.category}</p>
-            <p class="text-sm text-gray-500">${exp.paidTo} • ${formatDate(exp.date)}</p>
+            <p class="font-medium text-gray-800">${activity.activityType === 'expense' ? activity.category : `${activity.bank} - ${activity.type}`}</p>
+            <p class="text-sm text-gray-500">${activity.activityType === 'expense' ? activity.paidTo : activity.party} • ${formatDate(activity.date)}</p>
           </div>
         </div>
         <div class="text-right">
-          <p class="font-bold text-red-600">₹${exp.amount.toLocaleString('en-IN')}</p>
-          <p class="text-xs text-gray-500">${exp.paymentMode}</p>
+          <p class="font-bold ${activity.activityType === 'expense' || activity.type === 'Debit' ? 'text-red-600' : 'text-green-600'}">
+            ${activity.activityType === 'expense' || activity.type === 'Debit' ? '-' : '+'}₹${activity.amount.toLocaleString('en-IN')}
+          </p>
+          <p class="text-xs text-gray-500">${activity.activityType === 'expense' ? activity.paymentMode : activity.bank}</p>
         </div>
       </div>
     `).join('') + '</div>';
@@ -785,7 +1048,7 @@ function showMessage(message, type = 'info') {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 Quick Books - Phase 2A: Expense Tracking');
+  console.log('🚀 Quick Books - Phase 2B: Bank Transactions');
   
   const user = localStorage.getItem('sgfc_user');
   if (!user) {
@@ -798,5 +1061,5 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadDashboardData();
   switchTab('dashboard');
   
-  console.log('✅ Ready! Expense tracking is now available.');
+  console.log('✅ Ready! Expense tracking & Bank transactions available.');
 });
