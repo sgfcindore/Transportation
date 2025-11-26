@@ -9,7 +9,6 @@
   <!-- Home Page CSS -->
   <link rel="stylesheet" href="css/home.css">
 </head>
-</head>
 <body>
   <!-- Background with sliding images -->
   <div class="background-container">
@@ -40,7 +39,7 @@
           <div class="user-avatar" id="userAvatar">U</div>
           <div class="user-details">
             <span id="userName">User</span>
-            <small id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="552026302715302d34382539307b363a38">[email&#160;protected]</a></small>
+            <small id="userEmail">user@example.com</small>
           </div>
         </div>
         <button class="logout-btn" id="logoutBtn">
@@ -78,11 +77,41 @@
           </svg>
           Go to Dashboard
         </button>
+        
+        <!-- NEW: Book Keeping Button -->
+        <button class="accounting-btn" onclick="window.location.href='accounting.html'">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          Book Keeping & Accounts
+        </button>
+      </div>
+      
+      <!-- Feature Cards -->
+      <div class="feature-cards">
+        <div class="feature-card">
+          <div class="feature-icon dashboard-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h3>Operations Dashboard</h3>
+          <p>Daily Register, LR Management, Challans, Payments</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon accounting-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3>Book Keeping & Accounts</h3>
+          <p>Balance Sheet, P&L, GST, TDS, Financial Reports</p>
+        </div>
       </div>
     </div>
   </div>
   
-
   <!-- Home Page JavaScript -->
   <script src="js/home.js"></script>
 </body>
