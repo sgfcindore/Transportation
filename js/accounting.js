@@ -16,6 +16,10 @@ let currentUser = null;
 const FY_START = '2024-04-01';
 const FY_END = '2025-03-31';
 
+// Firebase variables
+let firebaseDB = null;
+let firebaseReady = false;
+
 // ============================================================================
 // DATABASE INITIALIZATION
 // ============================================================================
@@ -36,41 +40,89 @@ async function initDB() {
 }
 
 // ============================================================================
+// FIREBASE INITIALIZATION - ADD THIS ENTIRE SECTION HERE
+// ============================================================================
+
+async function initFirebase() {
+  console.log('🔥 Initializing Firebase for QuickBooks...');
+  
+  try {
+    // Import Firebase modules
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+    const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXjS_eZykW2vCBUvb0cFRQemsAd2A6AFQ",
+      authDomain: "sgfc-transportation-ba8ec.firebaseapp.com",
+      databaseURL: "https://sgfc-transportation-ba8ec-default-rtdb.firebaseio.com",
+      projectId: "sgfc-transportation-ba8ec",
+      storageBucket: "sgfc-transportation-ba8ec.firebasestorage.app",
+      messagingSenderId: "859899954518",
+      appId: "1:859899954518:web:520b1a0aa9150637df02f7",
+      measurementId: "G-GJ2P24Q8PG"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const dbFirestore = getFirestore(app);
+    
+    firebaseDB = { db: dbFirestore, collection, getDocs };
+    firebaseReady = true;
+    
+    console.log('✅ Firebase initialized for QuickBooks');
+    return true;
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+    firebaseReady = false;
+    return false;
+  }
+}
+
+// ============================================================================
 // LOAD DASHBOARD DATA
+// ============================================================================
+
+// ============================================================================
+// LOAD DASHBOARD DATA FROM FIREBASE
 // ============================================================================
 
 async function loadDashboardData() {
   try {
-    const possibleDBNames = [
-      'sgfcDB', 'FreightCarrierDB', 'freightCarrierDB',
-      'SGFCDB', 'dashboardDB', 'DashboardDB',
-      'sgfc', 'SGFC', 'transportDB', 'lrDB'
-    ];
-    
-    for (const dbName of possibleDBNames) {
-      try {
-        const testDB = new Dexie(dbName);
-        await testDB.open();
-        
-        if (testDB.tables.some(t => t.name === 'records')) {
-          const recordsTable = testDB.table('records');
-          const count = await recordsTable.count();
-          
-          if (count > 0) {
-            allDashboardRecords = await recordsTable.toArray();
-            console.log(`✅ Loaded ${allDashboardRecords.length} records`);
-            testDB.close();
-            break;
-          }
-        }
-        testDB.close();
-      } catch (error) {}
+    if (!firebaseReady || !firebaseDB) {
+      console.log('⚠️ Firebase not ready, initializing...');
+      const initialized = await initFirebase();
+      if (!initialized) {
+        throw new Error('Firebase connection failed. Check internet connection.');
+      }
     }
+    
+    console.log('📥 Loading data from Firebase...');
+    
+    const { db: dbFirestore, collection, getDocs } = firebaseDB;
+    const querySnapshot = await getDocs(collection(dbFirestore, 'records'));
+    
+    allDashboardRecords = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      allDashboardRecords.push({
+        __firebaseId: doc.id,
+        __backendId: doc.id,
+        ...data
+      });
+    });
+    
+    console.log(`✅ Loaded ${allDashboardRecords.length} records from Firebase`);
+    
+    // Log record types for debugging
+    const recordTypes = {};
+    allDashboardRecords.forEach(r => {
+      recordTypes[r.type] = (recordTypes[r.type] || 0) + 1;
+    });
+    console.log('📊 Record types:', recordTypes);
     
     return allDashboardRecords;
   } catch (error) {
-    console.error('Error loading dashboard data:', error);
-    return [];
+    console.error('❌ Error loading dashboard data:', error);
+    throw error;
   }
 }
 
@@ -79,17 +131,40 @@ async function syncWithDashboard() {
   const originalHTML = btn.innerHTML;
   
   btn.disabled = true;
-  btn.innerHTML = '<div class="loading-spinner"></div> Syncing...';
+  btn.innerHTML = '<div class="loading-spinner"></div> Syncing from Cloud...';
   
   try {
+    // Load data from Firebase
     await loadDashboardData();
-    showMessage(allDashboardRecords.length === 0 ? 'No data found' : `Synced ${allDashboardRecords.length} records!`, 
-                allDashboardRecords.length === 0 ? 'warning' : 'success');
     
+    if (allDashboardRecords.length === 0) {
+      showMessage('⚠️ No data found in Firebase. Check Operations Dashboard.', 'warning');
+    } else {
+      // Show breakdown by record type
+      const dailyRegister = allDashboardRecords.filter(r => r.type === 'daily_register').length;
+      const bookingLRs = allDashboardRecords.filter(r => r.type === 'booking_lr').length;
+      const nonBookingLRs = allDashboardRecords.filter(r => r.type === 'non_booking_lr').length;
+      const challans = allDashboardRecords.filter(r => r.type === 'challan_book').length;
+      const payments = allDashboardRecords.filter(r => r.type === 'payment_transaction').length;
+      
+      const message = `✅ Synced ${allDashboardRecords.length} records from Cloud!\n\n` +
+        `📋 Daily Register: ${dailyRegister}\n` +
+        `📄 Booking LRs: ${bookingLRs}\n` +
+        `📄 Non-Booking LRs: ${nonBookingLRs}\n` +
+        `📑 Challans: ${challans}\n` +
+        `💰 Payments: ${payments}`;
+      
+      showMessage(message, 'success');
+    }
+    
+    // Refresh current tab
     const activeTab = document.querySelector('.tab-btn.active');
-    if (activeTab) switchTab(activeTab.getAttribute('data-tab'));
+    if (activeTab) {
+      switchTab(activeTab.getAttribute('data-tab'));
+    }
   } catch (error) {
-    showMessage('Sync failed', 'error');
+    console.error('Sync error:', error);
+    showMessage(`❌ Sync failed: ${error.message}\n\nCheck:\n1. Internet connection\n2. Operations Dashboard accessible`, 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalHTML;
@@ -1468,13 +1543,21 @@ function formatDate(dateString) {
 }
 
 function showMessage(message, type = 'info') {
-  const toast = document.createElement('div');
-  const colors = {
-    error: 'bg-red-100 border-red-500 text-red-700',
-    warning: 'bg-yellow-100 border-yellow-500 text-yellow-700',
-    info: 'bg-blue-100 border-blue-500 text-blue-700',
-    success: 'bg-green-100 border-green-500 text-green-700'
-  };
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+    type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
+    type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
+    type === 'warning' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+    'bg-blue-100 text-blue-800 border border-blue-300'
+  }`;
+  
+  // Handle multi-line messages
+  messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+  
+  document.body.appendChild(messageDiv);
+  
+  setTimeout(() => messageDiv.remove(), 5000);
+}
   
   toast.className = `fixed top-20 right-6 px-6 py-4 rounded-lg shadow-lg z-50 border-l-4 ${colors[type]} max-w-md`;
   toast.textContent = message;
