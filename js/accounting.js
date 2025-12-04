@@ -32,7 +32,7 @@ async function initDB() {
     bankTransactions: '++id, date, bank, type, amount, party, purpose, reference, createdAt',
     assets: '++id, name, category, purchaseDate, purchasePrice, depRate, currentValue, createdAt',
     openingBalance: '++id, accountType, accountName, amount, date',
-    settings: 'key, value'
+    settings: 'key, value',
     masterSettings: '++id, type, name, value, data, createdAt'
   });
   
