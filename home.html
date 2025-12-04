@@ -1,103 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home - South Gujrat Freight Carrier</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Home Page CSS -->
-  <link rel="stylesheet" href="css/home.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGFC Transportation - Home</title>
+    <link rel="stylesheet" href="css/home.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Background with sliding images -->
-  <div class="background-container">
-    <div class="bg-slider">
-      <div class="bg-slide"></div>
-      <div class="bg-slide"></div>
-      <div class="bg-slide"></div>
+    <!-- Sliding Background -->
+    <div class="background-slider">
+        <div class="slide"></div>
+        <div class="slide"></div>
+        <div class="slide"></div>
     </div>
-  </div>
-  
-  <!-- Navigation Bar -->
-  <nav class="navbar">
-    <div class="navbar-content">
-      <div class="logo-section">
-        <div class="logo-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="nav-left">
+                <div class="logo">SGFC</div>
+                <div class="company-info">
+                    <h1>SOUTH GUJRAT FREIGHT CARRIER</h1>
+                    <p>Transportation Management Excellence</p>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/40" alt="User">
+                </div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-badge">Welcome</div>
+            <h2 class="main-heading">Choose Your Dashboard</h2>
         </div>
-        <div class="company-info">
-          <h1>SOUTH GUJRAT FREIGHT CARRIER</h1>
-          <p>GLOBAL TRANSPORTATION SOLUTIONS</p>
+
+        <!-- Feature Cards (3 Cards) -->
+        <div class="features-grid">
+            <!-- Operations Dashboard Card -->
+            <div class="feature-card clickable-card" onclick="window.location.href='dashboard.html'">
+                <div class="feature-icon-container operations-icon">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h3 class="feature-title">Operations Dashboard</h3>
+                <p class="feature-description">Manage trips, vehicles, and daily operations efficiently</p>
+                <div class="feature-stats">
+                    <span>🚛 Fleet Management</span>
+                    <span>📊 Analytics</span>
+                    <span>📍 Live Tracking</span>
+                </div>
+            </div>
+
+            <!-- Book Keeping & Accounts Card -->
+            <div class="feature-card clickable-card" onclick="window.location.href='accounting.html'">
+                <div class="feature-icon-container accounting-icon">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="feature-title">Book Keeping & Accounts</h3>
+                <p class="feature-description">Complete financial management and accounting system</p>
+                <div class="feature-stats">
+                    <span>💰 Expenses</span>
+                    <span>🏦 Bank Entries</span>
+                    <span>📈 Reports</span>
+                </div>
+            </div>
+
+            <!-- Parking Management Card -->
+            <div class="feature-card clickable-card" onclick="window.location.href='parking.html'">
+                <div class="feature-icon-container parking-icon">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="feature-title">Parking Management</h3>
+                <p class="feature-description">Track vehicle parking, calculate fees, and manage revenue</p>
+                <div class="feature-stats">
+                    <span>🚛 Vehicle Tracking</span>
+                    <span>💵 Daily Rates</span>
+                    <span>📅 Duration Management</span>
+                </div>
+            </div>
         </div>
-      </div>
-      
-      <div class="nav-actions">
-        <div class="user-info">
-          <div class="user-avatar" id="userAvatar">U</div>
-          <div class="user-details">
-            <span id="userName">User</span>
-            <small id="userEmail">user@example.com</small>
-          </div>
-        </div>
-        <button class="logout-btn" id="logoutBtn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          Logout
-        </button>
-      </div>
     </div>
-  </nav>
-  
-  <!-- Main Content -->
-  <div class="main-content">
-    <div class="hero-section">
-      <div class="welcome-badge">
-        🚀 TRANSPORTATION MANAGEMENT SYSTEM
-      </div>
-      
-      <h1 class="main-heading">
-        WELCOME TO<br>
-        <span class="highlight">SOUTH GUJRAT<br>FREIGHT CARRIER</span>
-      </h1>
-      
-      <p class="subtitle">
-        Transportation Management Excellence
-      </p>
-      
-      <!-- TOP BUTTONS REMOVED - ONLY FEATURE CARDS BELOW ARE CLICKABLE NOW -->
-      
-      <!-- Feature Cards - NOW CLICKABLE BUTTONS -->
-      <div class="feature-cards">
-        <div class="feature-card clickable-card" onclick="window.location.href='dashboard.html'">
-          <div class="feature-icon dashboard-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <h3>Operations Dashboard</h3>
-          <p>Daily Register, LR Management, Challans, Payments</p>
-        </div>
-        
-        <div class="feature-card clickable-card" onclick="window.location.href='accounting.html'">
-          <div class="feature-icon accounting-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h3>Book Keeping & Accounts</h3>
-          <p>Balance Sheet, P&L, GST, TDS, Financial Reports</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Home Page JavaScript -->
-  <script src="js/home.js"></script>
+
+    <script>
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
 </body>
 </html>
