@@ -185,7 +185,6 @@ function switchTab(tabName) {
   const container = document.getElementById('tabContents');
   
   const tabs = {
-    'masters': loadMastersTab,
     'dashboard': loadDashboardTab,
     'expenses': loadExpensesTab,
     'bank': loadBankTab,
@@ -193,6 +192,7 @@ function switchTab(tabName) {
     'pl-statement': loadPLTab,
     'assets': loadAssetsTab,
     'export': loadExportTab,
+    'masters': loadMastersTab,
     'settings': loadSettingsTab
   };
   
