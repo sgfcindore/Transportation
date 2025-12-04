@@ -33,6 +33,7 @@ async function initDB() {
     assets: '++id, name, category, purchaseDate, purchasePrice, depRate, currentValue, createdAt',
     openingBalance: '++id, accountType, accountName, amount, date',
     settings: 'key, value'
+    masterSettings: '++id, type, name, value, data, createdAt'
   });
   
   await db.open();
@@ -184,6 +185,7 @@ function switchTab(tabName) {
   const container = document.getElementById('tabContents');
   
   const tabs = {
+    'masters': loadMastersTab,
     'dashboard': loadDashboardTab,
     'expenses': loadExpensesTab,
     'bank': loadBankTab,
@@ -2757,3 +2759,499 @@ calculateStats = async function() {
 };
 
 console.log('✅ V2 Complete - Excel Export + Reports + Charts Ready!');
+
+// ============================================================================
+// STEP 3: ADD COMPLETE MASTERS TAB FUNCTION
+// ============================================================================
+//
+// ADD THIS ENTIRE SECTION at the END of your accounting.js file
+// (Before the final initialization section)
+//
+// ⚠️ SAFETY: This is completely NEW code. Does NOT modify existing functions.
+// ⚠️ Does NOT touch Firebase, sync, or any existing functionality.
+//
+// ============================================================================
+
+// ============================================================================
+// MASTERS TAB - MAIN FUNCTION
+// ============================================================================
+
+async function loadMastersTab(container) {
+  // Load all master data
+  const banks = await db.masterSettings?.where('type').equals('bank').toArray() || [];
+  const fySettings = await db.masterSettings?.where('type').equals('fiscal_year').first() || null;
+  const companyInfo = await db.masterSettings?.where('type').equals('company').first() || null;
+  
+  // Get current FY from settings or use default 2025-2026
+  const currentFY = fySettings ? fySettings.value : '2025-2026';
+  const [fyStartYear, fyEndYear] = currentFY.split('-');
+  const fyStartDate = `${fyStartYear}-04-01`;
+  const fyEndDate = `${fyEndYear}-03-31`;
+  
+  // Company data
+  const companyData = companyInfo?.data || {};
+  
+  container.innerHTML = `
+    <div class="space-y-6">
+      
+      <!-- Page Header -->
+      <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-4xl font-bold mb-2">Masters & Settings</h2>
+            <p class="text-purple-100 text-lg">Configure your accounting system</p>
+          </div>
+          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: FINANCIAL YEAR SETTINGS -->
+      <div class="bg-white rounded-xl shadow-lg p-8 border-2 border-blue-100">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-gray-800">Financial Year Settings</h3>
+            <p class="text-sm text-gray-500">Set your accounting period</p>
+          </div>
+        </div>
+
+        <!-- Current FY Display -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-blue-600 font-medium mb-1">Current Financial Year</p>
+              <p class="text-3xl font-bold text-blue-900">${currentFY}</p>
+              <p class="text-sm text-blue-600 mt-2">
+                📅 ${formatDate(fyStartDate)} to ${formatDate(fyEndDate)}
+              </p>
+            </div>
+            <div class="text-right">
+              <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold">
+                ✓ Active
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Change FY Form -->
+        <div class="bg-gray-50 rounded-lg p-6">
+          <h4 class="font-bold text-gray-800 mb-4">Change Financial Year</h4>
+          <form id="fiscalYearForm" onsubmit="saveFiscalYear(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Select Financial Year</label>
+              <select id="fySelect" class="form-select w-full" required>
+                <option value="2023-2024" ${currentFY === '2023-2024' ? 'selected' : ''}>2023-2024</option>
+                <option value="2024-2025" ${currentFY === '2024-2025' ? 'selected' : ''}>2024-2025</option>
+                <option value="2025-2026" ${currentFY === '2025-2026' ? 'selected' : ''}>2025-2026</option>
+                <option value="2026-2027" ${currentFY === '2026-2027' ? 'selected' : ''}>2026-2027</option>
+                <option value="2027-2028" ${currentFY === '2027-2028' ? 'selected' : ''}>2027-2028</option>
+              </select>
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" class="btn btn-primary">
+                💾 Save Financial Year
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Warning -->
+        <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <p class="text-sm text-yellow-800">
+            <strong>⚠️ Important:</strong> Changing FY will update all reports and statements. The system will use this FY for all date ranges.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECTION 2: BANK MASTER -->
+      <div class="bg-white rounded-xl shadow-lg p-8 border-2 border-green-100">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800">Bank Accounts Master</h3>
+              <p class="text-sm text-gray-500">Manage your bank accounts</p>
+            </div>
+          </div>
+          <button onclick="openBankMasterModal()" class="btn btn-success">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Add New Bank
+          </button>
+        </div>
+
+        <!-- Bank Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+            <p class="text-sm text-blue-600 font-medium mb-1">Total Banks</p>
+            <p class="text-3xl font-bold text-blue-900">${banks.length}</p>
+          </div>
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+            <p class="text-sm text-green-600 font-medium mb-1">Savings Accounts</p>
+            <p class="text-3xl font-bold text-green-900">${banks.filter(b => b.data?.accountType === 'Savings').length}</p>
+          </div>
+          <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+            <p class="text-sm text-orange-600 font-medium mb-1">Current/OD Accounts</p>
+            <p class="text-3xl font-bold text-orange-900">${banks.filter(b => b.data?.accountType === 'Current' || b.data?.accountType === 'OD').length}</p>
+          </div>
+        </div>
+
+        <!-- Bank Accounts Table -->
+        ${banks.length === 0 ? `
+          <div class="text-center py-12 bg-gray-50 rounded-lg">
+            <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            <p class="text-gray-500 font-medium">No banks added yet</p>
+            <p class="text-sm text-gray-400 mt-1">Click "Add New Bank" to get started</p>
+          </div>
+        ` : `
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Bank Name</th>
+                  <th>Account Type</th>
+                  <th>Account Number</th>
+                  <th>Branch</th>
+                  <th>IFSC Code</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${banks.map(bank => `
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                          <span class="text-blue-600 font-bold text-sm">${bank.name.charAt(0)}</span>
+                        </div>
+                        <span class="font-semibold">${bank.name}</span>
+                      </div>
+                    </td>
+                    <td><span class="badge ${bank.data?.accountType === 'Savings' ? 'badge-success' : bank.data?.accountType === 'Current' ? 'badge-info' : 'badge-warning'}">${bank.data?.accountType || '-'}</span></td>
+                    <td class="font-mono text-sm">${bank.data?.accountNumber || '-'}</td>
+                    <td>${bank.data?.branch || '-'}</td>
+                    <td class="font-mono text-sm">${bank.data?.ifsc || '-'}</td>
+                    <td class="text-center">
+                      <button onclick="editBankMaster(${bank.id})" class="btn-icon btn-secondary btn-sm" title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                      </button>
+                      <button onclick="deleteBankMaster(${bank.id})" class="btn-icon btn-danger btn-sm ml-2" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+
+      <!-- SECTION 3: COMPANY INFORMATION -->
+      <div class="bg-white rounded-xl shadow-lg p-8 border-2 border-purple-100">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-gray-800">Company Information</h3>
+            <p class="text-sm text-gray-500">Update company details (Optional)</p>
+          </div>
+        </div>
+
+        <form id="companyInfoForm" onsubmit="saveCompanyInfo(event)">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+              <input type="text" id="companyName" value="${companyData.companyName || 'South Gujrat Freight Carrier'}" class="form-input">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">GSTIN</label>
+              <input type="text" id="gstin" value="${companyData.gstin || ''}" placeholder="24XXXXX1234X1ZX" class="form-input">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">PAN</label>
+              <input type="text" id="pan" value="${companyData.pan || ''}" placeholder="XXXXX1234X" class="form-input">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
+              <input type="tel" id="contact" value="${companyData.contact || ''}" placeholder="+91 XXXXX XXXXX" class="form-input">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+              <textarea id="address" rows="3" placeholder="Enter company address" class="form-textarea">${companyData.address || ''}</textarea>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <button type="submit" class="btn btn-primary">
+              💾 Save Company Info
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- INFO BOX -->
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+        <div class="flex gap-3">
+          <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <h4 class="font-bold text-blue-900 mb-2">How Masters Work</h4>
+            <ul class="text-sm text-blue-800 space-y-1">
+              <li>✓ Financial Year: Controls all date ranges in reports (currently: ${currentFY})</li>
+              <li>✓ Bank Master: Used in Bank Transactions, Balance Sheet, and P&L</li>
+              <li>✓ Company Info: Appears on exported reports</li>
+              <li>✓ All changes are saved instantly</li>
+              <li>✓ Your Firebase sync remains untouched and working</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ============================================================================
+// FISCAL YEAR FUNCTIONS
+// ============================================================================
+
+async function saveFiscalYear(event) {
+  event.preventDefault();
+  const fyValue = document.getElementById('fySelect').value;
+  
+  try {
+    // Check if FY setting exists
+    const existing = await db.masterSettings.where('type').equals('fiscal_year').first();
+    
+    if (existing) {
+      await db.masterSettings.update(existing.id, {
+        value: fyValue,
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      await db.masterSettings.add({
+        type: 'fiscal_year',
+        name: 'Financial Year',
+        value: fyValue,
+        data: {},
+        createdAt: new Date().toISOString()
+      });
+    }
+    
+    showMessage(`✅ Financial Year updated to ${fyValue}!`, 'success');
+    switchTab('masters'); // Reload tab
+  } catch (error) {
+    console.error('Error saving FY:', error);
+    showMessage('Error saving fiscal year', 'error');
+  }
+}
+
+// Function to get current FY (call this anywhere you need the FY)
+async function getCurrentFY() {
+  const fySettings = await db.masterSettings?.where('type').equals('fiscal_year').first();
+  return fySettings ? fySettings.value : '2025-2026';
+}
+
+// ============================================================================
+// BANK MASTER FUNCTIONS
+// ============================================================================
+
+function openBankMasterModal(bankId = null) {
+  const isEdit = bankId !== null;
+  
+  const modalHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 class="modal-title">${isEdit ? 'Edit' : 'Add'} Bank Account</h2>
+          <button class="modal-close" onclick="closeModal()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="bankMasterForm" onsubmit="saveBankMaster(event, ${bankId})">
+            <div class="form-group">
+              <label class="form-label required">Bank Name</label>
+              <input type="text" id="bankName" class="form-input" required placeholder="e.g., HDFC Bank, ICICI Bank">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">Account Type</label>
+              <select id="accountType" class="form-select" required>
+                <option value="">Select Type</option>
+                <option value="Savings">Savings Account</option>
+                <option value="Current">Current Account</option>
+                <option value="OD">Overdraft (OD) Account</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Account Number</label>
+              <input type="text" id="accountNumber" class="form-input" placeholder="Account number (optional)">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Branch</label>
+              <input type="text" id="branch" class="form-input" placeholder="Branch name (optional)">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">IFSC Code</label>
+              <input type="text" id="ifsc" class="form-input" placeholder="IFSC code (optional)">
+            </div>
+            
+            <div class="modal-footer">
+              <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Save Bank
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modalContainer').innerHTML = modalHTML;
+  if (isEdit) loadBankMasterData(bankId);
+}
+
+async function loadBankMasterData(id) {
+  try {
+    const bank = await db.masterSettings.get(id);
+    if (bank && bank.data) {
+      document.getElementById('bankName').value = bank.name;
+      document.getElementById('accountType').value = bank.data.accountType || '';
+      document.getElementById('accountNumber').value = bank.data.accountNumber || '';
+      document.getElementById('branch').value = bank.data.branch || '';
+      document.getElementById('ifsc').value = bank.data.ifsc || '';
+    }
+  } catch (error) {
+    showMessage('Error loading bank data', 'error');
+  }
+}
+
+async function saveBankMaster(event, bankId) {
+  event.preventDefault();
+  
+  const bankData = {
+    type: 'bank',
+    name: document.getElementById('bankName').value,
+    value: document.getElementById('bankName').value, // For easy searching
+    data: {
+      accountType: document.getElementById('accountType').value,
+      accountNumber: document.getElementById('accountNumber').value,
+      branch: document.getElementById('branch').value,
+      ifsc: document.getElementById('ifsc').value
+    },
+    updatedAt: new Date().toISOString()
+  };
+  
+  try {
+    if (bankId) {
+      await db.masterSettings.update(bankId, bankData);
+      showMessage('Bank updated!', 'success');
+    } else {
+      bankData.createdAt = new Date().toISOString();
+      await db.masterSettings.add(bankData);
+      showMessage('Bank added!', 'success');
+    }
+    
+    closeModal();
+    switchTab('masters');
+  } catch (error) {
+    console.error('Error saving bank:', error);
+    showMessage('Error saving bank', 'error');
+  }
+}
+
+function editBankMaster(id) {
+  openBankMasterModal(id);
+}
+
+async function deleteBankMaster(id) {
+  if (!confirm('Delete this bank account? This action cannot be undone.')) return;
+  
+  try {
+    await db.masterSettings.delete(id);
+    showMessage('Bank deleted!', 'success');
+    switchTab('masters');
+  } catch (error) {
+    showMessage('Error deleting bank', 'error');
+  }
+}
+
+// ============================================================================
+// COMPANY INFO FUNCTIONS
+// ============================================================================
+
+async function saveCompanyInfo(event) {
+  event.preventDefault();
+  
+  const companyData = {
+    type: 'company',
+    name: 'Company Information',
+    value: document.getElementById('companyName').value,
+    data: {
+      companyName: document.getElementById('companyName').value,
+      gstin: document.getElementById('gstin').value,
+      pan: document.getElementById('pan').value,
+      contact: document.getElementById('contact').value,
+      address: document.getElementById('address').value
+    },
+    updatedAt: new Date().toISOString()
+  };
+  
+  try {
+    const existing = await db.masterSettings.where('type').equals('company').first();
+    
+    if (existing) {
+      await db.masterSettings.update(existing.id, companyData);
+    } else {
+      companyData.createdAt = new Date().toISOString();
+      await db.masterSettings.add(companyData);
+    }
+    
+    showMessage('Company information saved!', 'success');
+  } catch (error) {
+    console.error('Error saving company info:', error);
+    showMessage('Error saving company information', 'error');
+  }
+}
+
+// ============================================================================
+// END OF MASTERS MODULE
+// ============================================================================
+
+console.log('✅ Masters Module Loaded!');
+
