@@ -17,19 +17,21 @@
 
     <!-- Main Container -->
     <div class="container">
-        <!-- Navbar - Right aligned with user and logout -->
-        <nav class="navbar">
-            <div class="nav-right">
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
-                        <div class="user-name" id="userName">User</div>
-                        <div class="user-email" id="userEmail">user@example.com</div>
-                    </div>
-                </div>
-                <button class="logout-btn" id="logoutBtn">Logout</button>
+        <!-- Compact Top Bar - Right Corner -->
+        <div class="top-bar">
+            <div class="sgfc-badge">
+                <div class="sgfc-logo-small">SGFC</div>
+                <span class="sgfc-text">SGFC</span>
             </div>
-        </nav>
+            <div class="user-section">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">User</div>
+                    <div class="user-email" id="userEmail">user@example.com</div>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
 
         <!-- Company Header - Centered -->
         <div class="company-header">
@@ -44,7 +46,7 @@
             <h2 class="main-heading">Choose Your Dashboard</h2>
         </div>
 
-        <!-- Feature Cards (3 Cards - Half Size) -->
+        <!-- Feature Cards (3 Cards - Compact) -->
         <div class="features-grid">
             <!-- Operations Dashboard Card -->
             <div class="feature-card clickable-card" onclick="window.location.href='dashboard.html'">
@@ -54,11 +56,11 @@
                     </svg>
                 </div>
                 <h3 class="feature-title">Operations Dashboard</h3>
-                <p class="feature-description">Manage trips, vehicles, and daily operations efficiently</p>
+                <p class="feature-description">Manage trips, vehicles, and operations</p>
                 <div class="feature-stats">
                     <span>🚛 Fleet</span>
                     <span>📊 Analytics</span>
-                    <span>📍 Tracking</span>
+                    <span>📍 Track</span>
                 </div>
             </div>
 
@@ -70,11 +72,11 @@
                     </svg>
                 </div>
                 <h3 class="feature-title">Book Keeping & Accounts</h3>
-                <p class="feature-description">Complete financial management and accounting system</p>
+                <p class="feature-description">Financial management system</p>
                 <div class="feature-stats">
-                    <span>💰 Expenses</span>
+                    <span>💰 Expense</span>
                     <span>🏦 Bank</span>
-                    <span>📈 Reports</span>
+                    <span>📈 Report</span>
                 </div>
             </div>
 
@@ -86,11 +88,11 @@
                     </svg>
                 </div>
                 <h3 class="feature-title">Parking Management</h3>
-                <p class="feature-description">Track vehicle parking, calculate fees, and manage revenue</p>
+                <p class="feature-description">Track parking and manage revenue</p>
                 <div class="feature-stats">
-                    <span>🚛 Tracking</span>
+                    <span>🚛 Track</span>
                     <span>💵 Rates</span>
-                    <span>📅 Duration</span>
+                    <span>📅 Time</span>
                 </div>
             </div>
         </div>
