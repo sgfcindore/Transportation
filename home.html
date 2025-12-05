@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGFC Transportation - Home</title>
     <link rel="stylesheet" href="css/home.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Sliding Background -->
@@ -17,22 +17,26 @@
 
     <!-- Main Container -->
     <div class="container">
-        <!-- Navbar -->
+        <!-- Navbar - Right aligned with user and logout -->
         <nav class="navbar">
-            <div class="nav-left">
-                <div class="logo">SGFC</div>
-                <div class="company-info">
-                    <h1>SOUTH GUJRAT FREIGHT CARRIER</h1>
-                    <p>Transportation Management Excellence</p>
-                </div>
-            </div>
             <div class="nav-right">
-                <div class="user-profile">
-                    <img src="https://via.placeholder.com/40" alt="User">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">User</div>
+                        <div class="user-email" id="userEmail">user@example.com</div>
+                    </div>
                 </div>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
             </div>
         </nav>
+
+        <!-- Company Header - Centered -->
+        <div class="company-header">
+            <div class="company-logo">SGFC</div>
+            <h1 class="company-name">SOUTH GUJRAT FREIGHT CARRIER</h1>
+            <p class="company-tagline">Transportation Management Excellence</p>
+        </div>
 
         <!-- Welcome Section -->
         <div class="welcome-section">
@@ -40,7 +44,7 @@
             <h2 class="main-heading">Choose Your Dashboard</h2>
         </div>
 
-        <!-- Feature Cards (3 Cards) -->
+        <!-- Feature Cards (3 Cards - Half Size) -->
         <div class="features-grid">
             <!-- Operations Dashboard Card -->
             <div class="feature-card clickable-card" onclick="window.location.href='dashboard.html'">
@@ -52,9 +56,9 @@
                 <h3 class="feature-title">Operations Dashboard</h3>
                 <p class="feature-description">Manage trips, vehicles, and daily operations efficiently</p>
                 <div class="feature-stats">
-                    <span>🚛 Fleet Management</span>
+                    <span>🚛 Fleet</span>
                     <span>📊 Analytics</span>
-                    <span>📍 Live Tracking</span>
+                    <span>📍 Tracking</span>
                 </div>
             </div>
 
@@ -69,7 +73,7 @@
                 <p class="feature-description">Complete financial management and accounting system</p>
                 <div class="feature-stats">
                     <span>💰 Expenses</span>
-                    <span>🏦 Bank Entries</span>
+                    <span>🏦 Bank</span>
                     <span>📈 Reports</span>
                 </div>
             </div>
@@ -84,20 +88,14 @@
                 <h3 class="feature-title">Parking Management</h3>
                 <p class="feature-description">Track vehicle parking, calculate fees, and manage revenue</p>
                 <div class="feature-stats">
-                    <span>🚛 Vehicle Tracking</span>
-                    <span>💵 Daily Rates</span>
-                    <span>📅 Duration Management</span>
+                    <span>🚛 Tracking</span>
+                    <span>💵 Rates</span>
+                    <span>📅 Duration</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                window.location.href = 'login.html';
-            }
-        }
-    </script>
+    <script src="js/home.js"></script>
 </body>
 </html>
