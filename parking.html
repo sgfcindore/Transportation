@@ -524,6 +524,31 @@
 
   </div>
 
+  <!-- Password Verification Modal -->
+  <div id="passwordModal" class="hidden">
+    <div class="modal-overlay" onclick="if(event.target===this) closePasswordModal()">
+      <div class="modal-container" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Password Required</h2>
+        </div>
+        <div class="modal-body">
+          <p class="text-sm text-gray-600 mb-4">Please enter the password to edit parking records.</p>
+          <div>
+            <label class="form-label">Password</label>
+            <input type="password" id="editPassword" class="form-input" placeholder="Enter password" onkeypress="if(event.key==='Enter') verifyEditPassword()">
+          </div>
+          <div id="passwordError" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm text-red-600 font-medium">Incorrect password. Please try again.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="closePasswordModal()" class="btn-secondary">Cancel</button>
+          <button onclick="verifyEditPassword()" class="btn-primary">Verify</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Container -->
   <div id="modalContainer"></div>
 
@@ -548,6 +573,10 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // Password Protection
+    const EDIT_PASSWORD = "sgfc2025"; // Change this to your desired password
+    let pendingEditId = null;
 
     let parkingRecords = [];
     let filteredReports = [];
@@ -981,6 +1010,36 @@
     }
 
     function editParking(id) {
+      // Show password modal first
+      pendingEditId = id;
+      document.getElementById('passwordModal').classList.remove('hidden');
+      document.getElementById('editPassword').value = '';
+      document.getElementById('passwordError').classList.add('hidden');
+      setTimeout(() => document.getElementById('editPassword').focus(), 100);
+    }
+    
+    function closePasswordModal() {
+      document.getElementById('passwordModal').classList.add('hidden');
+      pendingEditId = null;
+      document.getElementById('editPassword').value = '';
+      document.getElementById('passwordError').classList.add('hidden');
+    }
+    
+    function verifyEditPassword() {
+      const enteredPassword = document.getElementById('editPassword').value;
+      
+      if (enteredPassword === EDIT_PASSWORD) {
+        closePasswordModal();
+        showEditModal(pendingEditId);
+        pendingEditId = null;
+      } else {
+        document.getElementById('passwordError').classList.remove('hidden');
+        document.getElementById('editPassword').value = '';
+        document.getElementById('editPassword').focus();
+      }
+    }
+    
+    function showEditModal(id) {
       const record = parkingRecords.find(r => r.id === id);
       if (!record) return;
       
