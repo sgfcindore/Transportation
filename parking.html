@@ -800,7 +800,7 @@
         <div class="mb-3 text-sm text-gray-600">
           Showing ${startIndex + 1}-${Math.min(endIndex, completedRecords.length)} of ${completedRecords.length}
         </div>
-        <div class="data-header" style="grid-template-columns: 1fr 1fr 0.9fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.5fr;">
+        <div class="data-header" style="grid-template-columns: 1fr 1fr 0.9fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr 0.5fr;">
           <div>VEHICLE</div>
           <div>OWNER</div>
           <div>ENTRY</div>
@@ -809,13 +809,15 @@
           <div>CALCULATED</div>
           <div>DISCOUNT</div>
           <div>PAID</div>
+          <div>TAKEN BY</div>
+          <div>MODE</div>
           <div>ACTION</div>
         </div>
         ${paginatedRecords.map(record => {
           const hasDiscount = record.discountApplied && record.discountAmount > 0;
           const calculatedAmt = record.calculatedAmount || record.totalAmount;
           return `
-            <div class="data-row" style="grid-template-columns: 1fr 1fr 0.9fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.5fr;">
+            <div class="data-row" style="grid-template-columns: 1fr 1fr 0.9fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr 0.5fr;">
               <div class="vehicle-number">${record.vehicleNumber}</div>
               <div>
                 <div class="font-semibold text-gray-900">${record.ownerName}</div>
@@ -838,6 +840,16 @@
                 ` : '<span class="text-gray-400">-</span>'}
               </div>
               <div class="font-bold text-green-600">₹${record.totalAmount.toLocaleString('en-IN')}</div>
+              <div class="text-sm font-medium text-blue-700">${record.takenBy || '-'}</div>
+              <div>
+                ${record.modeOfReceiving ? `
+                  <span class="text-xs px-2 py-1 rounded-full ${
+                    record.modeOfReceiving === 'Cash' ? 'bg-green-100 text-green-800' :
+                    record.modeOfReceiving === 'UPI' ? 'bg-blue-100 text-blue-800' :
+                    'bg-purple-100 text-purple-800'
+                  }">${record.modeOfReceiving}</span>
+                ` : '-'}
+              </div>
               <div>
                 <button onclick="deleteParking('${record.id}')" class="btn-delete" title="Delete">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1261,6 +1273,30 @@
                 <div id="discountInfo" class="text-sm text-green-600 mt-2 hidden"></div>
               </div>
               
+              <!-- Payment Details Section -->
+              <div class="info-banner">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="form-label">Taken By *</label>
+                    <select id="takenBy" class="form-input" required>
+                      <option value="">-- Select Staff --</option>
+                      <option value="South Gujrat Freight Carrier">South Gujrat Freight Carrier</option>
+                      <option value="Loading...">Loading staff...</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">💡 Select staff to add to their ledger</p>
+                  </div>
+                  <div>
+                    <label class="form-label">Mode of Receiving *</label>
+                    <select id="modeOfReceiving" class="form-input" required>
+                      <option value="">-- Select Mode --</option>
+                      <option value="Cash">💵 Cash</option>
+                      <option value="UPI">📱 UPI</option>
+                      <option value="Bank">🏦 Bank Transfer</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
               ${exitTime >= '12:00' ? `
               <div class="warning-banner">
                 <p class="text-sm text-orange-900 font-medium">⚠️ Exit after 12:00 PM - Full day charge applied</p>
@@ -1277,6 +1313,46 @@
       `;
       
       document.getElementById('modalContainer').innerHTML = modal;
+      
+      // Load staff names from dashboard Firebase database
+      loadStaffNames();
+    }
+    
+    async function loadStaffNames() {
+      const takenBySelect = document.getElementById('takenBy');
+      if (!takenBySelect) return;
+      
+      try {
+        // Try to connect to dashboard Firebase database
+        // Dashboard uses same Firebase config, just different collection
+        const staffSnapshot = await db.collection('records').where('type', '==', 'staff_master').get();
+        
+        // Clear loading option
+        takenBySelect.innerHTML = `
+          <option value="">-- Select Staff --</option>
+          <option value="South Gujrat Freight Carrier">South Gujrat Freight Carrier</option>
+        `;
+        
+        if (!staffSnapshot.empty) {
+          staffSnapshot.forEach(doc => {
+            const staff = doc.data();
+            const option = document.createElement('option');
+            option.value = staff.staffName;
+            option.textContent = staff.staffName;
+            takenBySelect.appendChild(option);
+          });
+          console.log('✅ Loaded', staffSnapshot.size, 'staff members');
+        } else {
+          console.log('ℹ️ No staff members found in dashboard');
+        }
+      } catch (error) {
+        console.error('Error loading staff names:', error);
+        // Keep the default options if loading fails
+        takenBySelect.innerHTML = `
+          <option value="">-- Select Staff --</option>
+          <option value="South Gujrat Freight Carrier">South Gujrat Freight Carrier</option>
+        `;
+      }
     }
 
     function updateFinalAmount(calculatedAmount) {
@@ -1337,6 +1413,22 @@
       const discountValueInput = document.getElementById('discountValue');
       const customAmountInput = document.getElementById('customAmount');
       const discountReasonInput = document.getElementById('discountReason');
+      const takenBySelect = document.getElementById('takenBy');
+      const modeOfReceivingSelect = document.getElementById('modeOfReceiving');
+      
+      // Validate payment details
+      if (!takenBySelect || !takenBySelect.value) {
+        showToast('Please select who received the payment', 'error');
+        return;
+      }
+      
+      if (!modeOfReceivingSelect || !modeOfReceivingSelect.value) {
+        showToast('Please select mode of receiving', 'error');
+        return;
+      }
+      
+      const takenBy = takenBySelect.value;
+      const modeOfReceiving = modeOfReceivingSelect.value;
       
       let finalAmount = calculatedAmount;
       let discountAmount = 0;
@@ -1372,11 +1464,57 @@
         discountPercentage: Math.round(discountPercentage * 100) / 100,
         discountType: discountType !== 'none' ? discountType : null,
         discountReason: discountReasonInput.value || null,
+        takenBy: takenBy,
+        modeOfReceiving: modeOfReceiving,
         completedAt: new Date().toISOString()
       };
       
       try {
+        // Get the parking record for details
+        const parkingRecord = parkingRecords.find(r => r.id === id);
+        
+        // Update parking record
         await db.collection('parking').doc(id).update(updateData);
+        
+        // Create payment transaction in dashboard ONLY if not "South Gujrat Freight Carrier"
+        if (takenBy !== 'South Gujrat Freight Carrier') {
+          try {
+            const paymentTransaction = {
+              type: 'payment_transaction',
+              paymentType: 'Parking Income',
+              paymentAmount: finalAmount,
+              paymentDate: exitDate,
+              paymentMode: modeOfReceiving,
+              paymentReference: `Parking: ${parkingRecord.vehicleNumber}`,
+              
+              // Link to staff ledger
+              staffName: takenBy,
+              takenBy: takenBy,
+              
+              // Vehicle details
+              vehicleNumber: parkingRecord.vehicleNumber,
+              ownerName: parkingRecord.ownerName,
+              
+              // Notes
+              paymentNotes: `Parking payment for ${parkingRecord.vehicleNumber} (${days} days)`,
+              
+              // Status
+              ledgerStatus: 'Recorded',
+              adjustmentStatus: 'Manual',
+              
+              // Metadata
+              createdAt: new Date().toISOString(),
+              recordedBy: 'Parking System',
+              source: 'parking_app'
+            };
+            
+            await db.collection('records').add(paymentTransaction);
+            console.log('✅ Payment transaction created in dashboard for', takenBy);
+          } catch (error) {
+            console.error('⚠️ Could not create dashboard payment transaction:', error);
+            // Don't fail the parking checkout if dashboard transaction fails
+          }
+        }
         
         if (discountAmount > 0) {
           showToast(`Exit complete! Discount: ₹${discountAmount.toLocaleString('en-IN')}`, 'success');
