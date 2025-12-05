@@ -1088,17 +1088,7 @@
     document.getElementById('editPassword').focus();
   }
 }
-        
-        pendingAction = null;
-        pendingEditId = null;
-        pendingDeleteId = null;
-      } else {
-        document.getElementById('passwordError').classList.remove('hidden');
-        document.getElementById('editPassword').value = '';
-        document.getElementById('editPassword').focus();
-      }
-    }
-    
+      
     async function confirmDeleteParking(id) {
       if (!confirm('Are you sure you want to delete this record?')) return;
       
