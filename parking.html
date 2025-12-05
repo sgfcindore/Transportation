@@ -1381,7 +1381,7 @@
               record.ownerName,
               `${formatDate(record.entryDate)}`,
               `${days}d`,
-              `₹${amount.toLocaleString('en-IN')}`
+              `Rs ${amount.toLocaleString('en-IN')}`  // Changed from ₹ to Rs
             ];
           });
           
@@ -1403,7 +1403,7 @@
               `${formatDate(record.exitDate)}`,
               `${record.totalDays}d`,
               hasDiscount ? `${Math.round(record.discountPercentage)}%` : '-',
-              `₹${record.totalAmount.toLocaleString('en-IN')}`
+              `Rs ${record.totalAmount.toLocaleString('en-IN')}`  // Changed from ₹ to Rs
             ];
           });
           
@@ -1582,7 +1582,7 @@
           record.ownerName,
           formatDate(record.entryDate),
           formatDate(record.exitDate),
-          `₹${record.totalAmount.toLocaleString('en-IN')}`
+          `Rs ${record.totalAmount.toLocaleString('en-IN')}`  // Changed from ₹ to Rs
         ]);
         
         doc.autoTable({
@@ -1601,7 +1601,7 @@
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.text(`Total Records: ${filteredReports.length}`, 14, finalY);
-        doc.text(`Total Income: ₹${total.toLocaleString('en-IN')}`, 14, finalY + 7);
+        doc.text(`Total Income: Rs ${total.toLocaleString('en-IN')}`, 14, finalY + 7);  // Changed from ₹ to Rs
         
         // Save
         doc.save(`SGFC_Parking_Report_${new Date().toISOString().split('T')[0]}.pdf`);
