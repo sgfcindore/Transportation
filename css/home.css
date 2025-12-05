@@ -65,51 +65,17 @@ body {
     z-index: 1;
 }
 
-/* Navbar */
+/* Navbar - Right aligned logout and user */
 .navbar {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    padding: 20px 30px;
+    padding: 15px 30px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     margin-bottom: 40px;
-}
-
-.nav-left {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.logo {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    font-weight: 700;
-    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
-}
-
-.company-info h1 {
-    font-size: 24px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 5px;
-}
-
-.company-info p {
-    font-size: 14px;
-    color: #64748b;
 }
 
 .nav-right {
@@ -118,11 +84,40 @@ body {
     gap: 20px;
 }
 
-.user-profile img {
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
     width: 45px;
     height: 45px;
     border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
     border: 3px solid #3b82f6;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.user-email {
+    font-size: 12px;
+    color: #64748b;
 }
 
 .logout-btn {
@@ -139,6 +134,44 @@ body {
 .logout-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+}
+
+/* Company Header - Centered and Larger */
+.company-header {
+    text-align: center;
+    margin: 60px 0 40px 0;
+}
+
+.company-logo {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    border-radius: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 40px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+    margin-bottom: 20px;
+}
+
+.company-name {
+    font-size: 56px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.company-tagline {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
 }
 
 /* Welcome Section */
@@ -159,7 +192,7 @@ body {
 }
 
 .main-heading {
-    font-size: 48px;
+    font-size: 36px;
     font-weight: 700;
     background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
     -webkit-background-clip: text;
@@ -167,22 +200,22 @@ body {
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Features Grid - 3 Cards */
+/* Features Grid - Smaller Cards (Half Size) */
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 30px;
-    max-width: 1200px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    max-width: 1000px;
     margin: 0 auto;
 }
 
-/* Feature Cards */
+/* Feature Cards - Reduced Size */
 .feature-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
 }
 
@@ -193,7 +226,7 @@ body {
 
 .clickable-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
 }
 
 .clickable-card:active {
@@ -201,13 +234,13 @@ body {
 }
 
 .feature-icon-container {
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: 18px;
     transition: all 0.3s ease;
 }
 
@@ -228,37 +261,37 @@ body {
 }
 
 .feature-icon {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     stroke: white;
     stroke-width: 2.5;
 }
 
 .feature-title {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     color: #1e293b;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .feature-description {
-    font-size: 15px;
+    font-size: 13px;
     color: #64748b;
-    margin-bottom: 20px;
-    line-height: 1.6;
+    margin-bottom: 16px;
+    line-height: 1.5;
 }
 
 .feature-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
 }
 
 .feature-stats span {
-    padding: 8px 16px;
+    padding: 6px 12px;
     background: #f1f5f9;
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: 6px;
+    font-size: 11px;
     font-weight: 500;
     color: #475569;
 }
@@ -266,19 +299,27 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
     .navbar {
-        flex-direction: column;
-        gap: 20px;
+        padding: 12px 20px;
     }
 
-    .company-info h1 {
-        font-size: 18px;
+    .company-name {
+        font-size: 32px;
+    }
+
+    .company-tagline {
+        font-size: 14px;
     }
 
     .main-heading {
-        font-size: 32px;
+        font-size: 28px;
     }
 
     .features-grid {
         grid-template-columns: 1fr;
+        max-width: 400px;
+    }
+
+    .user-details {
+        display: none;
     }
 }
