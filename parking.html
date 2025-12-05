@@ -55,7 +55,7 @@
     
     .data-row {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr auto;
+      grid-template-columns: 1fr 1.2fr 0.9fr 0.8fr 0.7fr 0.7fr 0.8fr 1.2fr;
       gap: 16px;
       padding: 16px 20px;
       align-items: center;
@@ -70,7 +70,7 @@
     
     .data-header {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr auto;
+      grid-template-columns: 1fr 1.2fr 0.9fr 0.8fr 0.7fr 0.7fr 0.8fr 1.2fr;
       gap: 16px;
       padding: 12px 20px;
       font-size: 12px;
@@ -379,6 +379,7 @@
         <div class="flex">
           <div class="nav-link active" onclick="showTab('active')" id="navActive">Gate management</div>
           <div class="nav-link" onclick="showTab('completed')" id="navCompleted">Completed</div>
+          <div class="nav-link" onclick="showTab('reports')" id="navReports">Reports</div>
         </div>
         <div class="flex items-center gap-3 py-3">
           <button onclick="downloadPDF()" class="btn-secondary">
@@ -453,6 +454,61 @@
       </div>
     </div>
 
+    <!-- Reports Section -->
+    <div id="reportsTab" class="hidden">
+      <!-- Total Income Card -->
+      <div class="card mb-6">
+        <div class="text-center py-8">
+          <div class="text-sm text-gray-600 font-medium mb-2">TOTAL INCOME</div>
+          <div class="text-5xl font-bold text-green-600" id="totalIncome">₹0</div>
+          <div class="text-sm text-gray-500 mt-2">From all completed parking</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card mb-6">
+        <div class="grid grid-cols-4 gap-4">
+          <div>
+            <label class="form-label">From Date</label>
+            <input type="date" id="filterFromDate" class="form-input" onchange="filterReports()">
+          </div>
+          <div>
+            <label class="form-label">To Date</label>
+            <input type="date" id="filterToDate" class="form-input" onchange="filterReports()">
+          </div>
+          <div>
+            <label class="form-label">Search Vehicle</label>
+            <input type="text" id="filterVehicle" class="form-input" placeholder="Vehicle number" oninput="filterReports()">
+          </div>
+          <div class="flex items-end gap-2">
+            <button onclick="clearFilters()" class="btn-secondary flex-1">Clear</button>
+            <button onclick="exportToCSV()" class="btn-secondary">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              CSV
+            </button>
+            <button onclick="exportReportToPDF()" class="btn-primary">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Table -->
+      <div class="card">
+        <div class="mb-4">
+          <h2 class="text-xl font-bold text-gray-900">Parking Reports</h2>
+          <p class="text-sm text-gray-600 mt-1" id="reportCount">All completed transactions</p>
+        </div>
+        
+        <div id="reportsTableContainer"></div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Modal Container -->
@@ -481,12 +537,21 @@
     const db = firebase.firestore();
 
     let parkingRecords = [];
+    let filteredReports = [];
     let currentActivePage = 1;
     let currentCompletedPage = 1;
     const recordsPerPage = 10;
 
     document.addEventListener('DOMContentLoaded', () => {
       loadParkingRecords();
+      
+      // Set default date range for reports (last 30 days)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      document.getElementById('filterToDate').value = today.toISOString().split('T')[0];
+      document.getElementById('filterFromDate').value = thirtyDaysAgo.toISOString().split('T')[0];
     });
 
     async function loadParkingRecords() {
@@ -500,6 +565,7 @@
         updateStats();
         renderActiveParkingList();
         renderCompletedParkingList();
+        filterReports();
       } catch (error) {
         console.error('Error loading parking records:', error);
         showToast('Error loading data', 'error');
@@ -1227,19 +1293,32 @@
     function showTab(tab) {
       const activeTab = document.getElementById('activeTab');
       const completedTab = document.getElementById('completedTab');
+      const reportsTab = document.getElementById('reportsTab');
       const navActive = document.getElementById('navActive');
       const navCompleted = document.getElementById('navCompleted');
+      const navReports = document.getElementById('navReports');
       
+      // Hide all tabs
+      activeTab.classList.add('hidden');
+      completedTab.classList.add('hidden');
+      reportsTab.classList.add('hidden');
+      
+      // Remove active class from all nav links
+      navActive.classList.remove('active');
+      navCompleted.classList.remove('active');
+      navReports.classList.remove('active');
+      
+      // Show selected tab
       if (tab === 'active') {
         activeTab.classList.remove('hidden');
-        completedTab.classList.add('hidden');
         navActive.classList.add('active');
-        navCompleted.classList.remove('active');
-      } else {
-        activeTab.classList.add('hidden');
+      } else if (tab === 'completed') {
         completedTab.classList.remove('hidden');
-        navActive.classList.remove('active');
         navCompleted.classList.add('active');
+      } else if (tab === 'reports') {
+        reportsTab.classList.remove('hidden');
+        navReports.classList.add('active');
+        filterReports(); // Refresh reports when tab is opened
       }
     }
 
@@ -1342,6 +1421,188 @@
 
     function printPage() {
       window.print();
+    }
+
+    // Reports Functions
+    function filterReports() {
+      const fromDate = document.getElementById('filterFromDate').value;
+      const toDate = document.getElementById('filterToDate').value;
+      const vehicleSearch = document.getElementById('filterVehicle').value.toUpperCase();
+      
+      filteredReports = parkingRecords.filter(r => {
+        if (r.status !== 'completed') return false;
+        
+        // Date filter
+        if (fromDate && r.exitDate < fromDate) return false;
+        if (toDate && r.exitDate > toDate) return false;
+        
+        // Vehicle search
+        if (vehicleSearch && !r.vehicleNumber.includes(vehicleSearch)) return false;
+        
+        return true;
+      });
+      
+      renderReportsTable();
+      updateTotalIncome();
+    }
+    
+    function clearFilters() {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      document.getElementById('filterFromDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+      document.getElementById('filterToDate').value = today.toISOString().split('T')[0];
+      document.getElementById('filterVehicle').value = '';
+      
+      filterReports();
+    }
+    
+    function renderReportsTable() {
+      const container = document.getElementById('reportsTableContainer');
+      
+      if (filteredReports.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-20">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-gray-600 font-medium">No records found</p>
+          </div>
+        `;
+        document.getElementById('reportCount').textContent = 'No records found';
+        return;
+      }
+      
+      document.getElementById('reportCount').textContent = `Showing ${filteredReports.length} transaction${filteredReports.length !== 1 ? 's' : ''}`;
+      
+      container.innerHTML = `
+        <div class="data-header" style="grid-template-columns: 1.2fr 1.2fr 1fr 1fr 1fr;">
+          <div>VEHICLE NUMBER</div>
+          <div>OWNER</div>
+          <div>ENTRY DATE</div>
+          <div>EXIT DATE</div>
+          <div>AMOUNT</div>
+        </div>
+        ${filteredReports.map(record => `
+          <div class="data-row" style="grid-template-columns: 1.2fr 1.2fr 1fr 1fr 1fr;">
+            <div class="vehicle-number">${record.vehicleNumber}</div>
+            <div class="font-semibold text-gray-900">${record.ownerName}</div>
+            <div class="text-gray-700">${formatDate(record.entryDate)}</div>
+            <div class="text-gray-700">${formatDate(record.exitDate)}</div>
+            <div class="font-bold text-green-600">₹${record.totalAmount.toLocaleString('en-IN')}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+    
+    function updateTotalIncome() {
+      const total = filteredReports.reduce((sum, r) => sum + r.totalAmount, 0);
+      document.getElementById('totalIncome').textContent = '₹' + total.toLocaleString('en-IN');
+    }
+    
+    function exportToCSV() {
+      if (filteredReports.length === 0) {
+        showToast('No data to export', 'error');
+        return;
+      }
+      
+      // CSV headers
+      let csv = 'Vehicle Number,Owner Name,Driver Name,Entry Date,Exit Date,Days,Rate Per Day,Calculated Amount,Discount,Final Amount\n';
+      
+      // CSV data
+      filteredReports.forEach(record => {
+        const hasDiscount = record.discountApplied && record.discountAmount > 0;
+        csv += `"${record.vehicleNumber}",`;
+        csv += `"${record.ownerName}",`;
+        csv += `"${record.driverName || '-'}",`;
+        csv += `"${formatDate(record.entryDate)}",`;
+        csv += `"${formatDate(record.exitDate)}",`;
+        csv += `${record.totalDays},`;
+        csv += `${record.ratePerDay},`;
+        csv += `${record.calculatedAmount || record.totalAmount},`;
+        csv += `${hasDiscount ? record.discountAmount : 0},`;
+        csv += `${record.totalAmount}\n`;
+      });
+      
+      // Total row
+      const total = filteredReports.reduce((sum, r) => sum + r.totalAmount, 0);
+      csv += `\n,,,,,,,,"TOTAL:",${total}\n`;
+      
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `SGFC_Parking_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('CSV exported successfully', 'success');
+    }
+    
+    function exportReportToPDF() {
+      if (filteredReports.length === 0) {
+        showToast('No data to export', 'error');
+        return;
+      }
+      
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Title
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('SGFC PARKING MANAGEMENT', 105, 15, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('Parking Report', 105, 22, { align: 'center' });
+        
+        const fromDate = document.getElementById('filterFromDate').value;
+        const toDate = document.getElementById('filterToDate').value;
+        doc.setFontSize(10);
+        doc.text(`Period: ${formatDate(fromDate)} to ${formatDate(toDate)}`, 105, 28, { align: 'center' });
+        doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 105, 33, { align: 'center' });
+        
+        // Table
+        const tableData = filteredReports.map(record => [
+          record.vehicleNumber,
+          record.ownerName,
+          formatDate(record.entryDate),
+          formatDate(record.exitDate),
+          `₹${record.totalAmount.toLocaleString('en-IN')}`
+        ]);
+        
+        doc.autoTable({
+          startY: 40,
+          head: [['Vehicle', 'Owner', 'Entry Date', 'Exit Date', 'Amount']],
+          body: tableData,
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 3 },
+          headStyles: { fillColor: [3, 105, 161], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [248, 250, 252] }
+        });
+        
+        // Total
+        const total = filteredReports.reduce((sum, r) => sum + r.totalAmount, 0);
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Total Records: ${filteredReports.length}`, 14, finalY);
+        doc.text(`Total Income: ₹${total.toLocaleString('en-IN')}`, 14, finalY + 7);
+        
+        // Save
+        doc.save(`SGFC_Parking_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        
+        showToast('PDF exported successfully', 'success');
+      } catch (error) {
+        console.error('PDF error:', error);
+        showToast('Error generating PDF', 'error');
+      }
     }
 
     function showToast(message, type = 'success') {
