@@ -800,25 +800,26 @@
         <div class="mb-3 text-sm text-gray-600">
           Showing ${startIndex + 1}-${Math.min(endIndex, completedRecords.length)} of ${completedRecords.length}
         </div>
-        <div class="data-header">
-          <div>Vehicle</div>
-          <div>Owner</div>
-          <div>Entry</div>
-          <div>Exit</div>
-          <div>Days</div>
-          <div>Calculated</div>
-          <div>Discount</div>
-          <div>Paid</div>
+        <div class="data-header" style="grid-template-columns: 1fr 1fr 0.9fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.5fr;">
+          <div>VEHICLE</div>
+          <div>OWNER</div>
+          <div>ENTRY</div>
+          <div>EXIT</div>
+          <div>DAYS</div>
+          <div>CALCULATED</div>
+          <div>DISCOUNT</div>
+          <div>PAID</div>
+          <div>ACTION</div>
         </div>
         ${paginatedRecords.map(record => {
           const hasDiscount = record.discountApplied && record.discountAmount > 0;
           const calculatedAmt = record.calculatedAmount || record.totalAmount;
           return `
-            <div class="data-row">
+            <div class="data-row" style="grid-template-columns: 1fr 1fr 0.9fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.5fr;">
               <div class="vehicle-number">${record.vehicleNumber}</div>
               <div>
                 <div class="font-semibold text-gray-900">${record.ownerName}</div>
-                ${record.driverName ? `<div class="text-xs text-gray-500">${record.driverName}</div>` : ''}
+                <div class="text-xs text-gray-500">${record.driverName || 'NO'}</div>
               </div>
               <div class="text-gray-700 text-sm">
                 ${formatDate(record.entryDate)}<br>
@@ -837,6 +838,13 @@
                 ` : '<span class="text-gray-400">-</span>'}
               </div>
               <div class="font-bold text-green-600">₹${record.totalAmount.toLocaleString('en-IN')}</div>
+              <div>
+                <button onclick="deleteParking('${record.id}')" class="btn-delete" title="Delete">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           `;
         }).join('')}
