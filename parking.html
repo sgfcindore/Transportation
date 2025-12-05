@@ -1065,16 +1065,29 @@
     }
     
     function verifyPassword() {
-      const enteredPassword = document.getElementById('editPassword').value;
-      
-      if (enteredPassword === EDIT_PASSWORD) {
-        closePasswordModal();
-        
-        if (pendingAction === 'edit') {
-          showEditModal(pendingEditId);
-        } else if (pendingAction === 'delete') {
-          confirmDeleteParking(pendingDeleteId);
-        }
+  const enteredPassword = document.getElementById('editPassword').value;
+  
+  if (enteredPassword === EDIT_PASSWORD) {
+    const action = pendingAction;
+    const editId = pendingEditId;
+    const deleteId = pendingDeleteId;
+    
+    closePasswordModal();
+    
+    setTimeout(() => {
+      if (action === 'edit') {
+        showEditModal(editId);
+      } else if (action === 'delete') {
+        confirmDeleteParking(deleteId);
+      }
+    }, 100);
+    
+  } else {
+    document.getElementById('passwordError').classList.remove('hidden');
+    document.getElementById('editPassword').value = '';
+    document.getElementById('editPassword').focus();
+  }
+}
         
         pendingAction = null;
         pendingEditId = null;
