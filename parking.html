@@ -403,22 +403,35 @@
   <div class="max-w-7xl mx-auto px-6 py-8">
     
     <!-- Stats Grid -->
-    <div class="grid grid-cols-4 gap-6 mb-8">
-      <div class="stat-card">
-        <div class="text-sm text-gray-600 font-medium mb-1">Active Vehicles</div>
-        <div class="text-3xl font-bold text-gray-900" id="statCurrentlyParked">0</div>
+    <div class="grid grid-cols-2 gap-6 mb-8">
+      <div class="stat-card" style="background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%); border: none; box-shadow: 0 4px 20px rgba(3, 105, 161, 0.25);">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-blue-100 font-semibold mb-2 uppercase tracking-wide">Active Vehicles</div>
+            <div class="text-5xl font-black text-white mb-1" id="statCurrentlyParked">0</div>
+            <div class="text-sm text-blue-100 font-medium">Currently parked in facility</div>
+          </div>
+          <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="text-sm text-gray-600 font-medium mb-1">Current Revenue</div>
-        <div class="text-3xl font-bold text-green-600" id="statCurrentRevenue">₹0</div>
-      </div>
-      <div class="stat-card">
-        <div class="text-sm text-gray-600 font-medium mb-1">Total Revenue</div>
-        <div class="text-3xl font-bold text-blue-600" id="statTotalRevenue">₹0</div>
-      </div>
-      <div class="stat-card">
-        <div class="text-sm text-gray-600 font-medium mb-1">Today's Checkouts</div>
-        <div class="text-3xl font-bold text-orange-600" id="statCompletedToday">0</div>
+      
+      <div class="stat-card" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border: none; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-green-100 font-semibold mb-2 uppercase tracking-wide">Today's Revenue</div>
+            <div class="text-5xl font-black text-white mb-1" id="statTodayRevenue">₹0</div>
+            <div class="text-sm text-green-100 font-medium">Total earnings today</div>
+          </div>
+          <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -612,18 +625,13 @@
       
       document.getElementById('statCurrentlyParked').textContent = activeRecords.length;
       
-      const currentRevenue = activeRecords.reduce((sum, r) => {
-        const days = calculateDaysWithTime(r.entryDate, r.entryTime || '00:00');
-        return sum + (days * r.ratePerDay);
-      }, 0);
-      document.getElementById('statCurrentRevenue').textContent = '₹' + currentRevenue.toLocaleString('en-IN');
-      
-      const totalRevenue = completedRecords.reduce((sum, r) => sum + (r.totalAmount || 0), 0) + currentRevenue;
-      document.getElementById('statTotalRevenue').textContent = '₹' + totalRevenue.toLocaleString('en-IN');
-      
+      // Calculate today's revenue (completed today)
       const today = new Date().toISOString().split('T')[0];
-      const completedToday = completedRecords.filter(r => r.exitDate?.startsWith(today)).length;
-      document.getElementById('statCompletedToday').textContent = completedToday;
+      const todayRevenue = completedRecords
+        .filter(r => r.exitDate?.startsWith(today))
+        .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+      
+      document.getElementById('statTodayRevenue').textContent = '₹' + todayRevenue.toLocaleString('en-IN');
     }
 
     function renderActiveParkingList() {
@@ -658,14 +666,14 @@
           Showing ${startIndex + 1}-${Math.min(endIndex, activeRecords.length)} of ${activeRecords.length}
         </div>
         <div class="data-header">
-          <div>Vehicle</div>
-          <div>Owner / Driver</div>
-          <div>Entry date</div>
-          <div>Entry time</div>
-          <div>Duration</div>
-          <div>Rate</div>
-          <div>Amount</div>
-          <div>Gate</div>
+          <div>VEHICLE</div>
+          <div>OWNER / DRIVER</div>
+          <div>ENTRY DATE</div>
+          <div>ENTRY TIME</div>
+          <div>DURATION</div>
+          <div>RATE</div>
+          <div>AMOUNT</div>
+          <div>GATE</div>
         </div>
         ${paginatedRecords.map(record => {
           const days = calculateDaysWithTime(record.entryDate, record.entryTime || '00:00');
@@ -675,7 +683,7 @@
               <div class="vehicle-number">${record.vehicleNumber}</div>
               <div>
                 <div class="font-semibold text-gray-900">${record.ownerName}</div>
-                ${record.driverName ? `<div class="text-xs text-gray-500">${record.driverName}</div>` : ''}
+                <div class="text-xs text-gray-500">${record.driverName || 'NO'}</div>
               </div>
               <div class="text-gray-700">${formatDate(record.entryDate)}</div>
               <div class="text-gray-700">${formatTime(record.entryTime || '00:00')}</div>
