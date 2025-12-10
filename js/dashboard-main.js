@@ -13,7 +13,7 @@ const defaultConfig = {
       const totalAmount =  Math.ceil(weight * ratePerTonne);
       const totalField = document.getElementById('lrTotalAmount');
       if (totalField) {
-        totalField.value = totalAmountMath.ceil();
+        totalField.value = Math.ceil(totalAmount);
       }
     }
     
@@ -23,7 +23,7 @@ const defaultConfig = {
       const totalAmount =  Math.ceil(weight * ratePerTonne);
       const totalField = document.getElementById('nbLrTotalAmount');
       if (totalField) {
-        totalField.value = totalAmountMath.ceil();
+        totalField.value = Math.ceil(totalAmount);
       }
     }
     
@@ -33,7 +33,7 @@ const defaultConfig = {
       const totalAmount =  Math.ceil(weight * ratePerTonne);
       const totalField = document.getElementById('challanTotalAmount');
       if (totalField) {
-        totalField.value = totalAmountMath.ceil();
+        totalField.value = Math.ceil(totalAmount);
       }
       // Also calculate balance amount when total changes
       calculateChallanBalanceAmount();
@@ -48,7 +48,7 @@ const defaultConfig = {
       
       const balanceField = document.getElementById('challanBalanceAmount');
       if (balanceField) {
-        balanceField.value = Math.max(0, balanceAmount)Math.ceil();
+        balanceField.value = Math.ceil(Math.max(0, balanceAmount));
       }
       
       // Also calculate remaining balance when balance amount changes
@@ -72,7 +72,7 @@ const defaultConfig = {
       
       const remainingField = document.getElementById('challanRemainingBalance');
       if (remainingField) {
-        remainingField.value = Math.max(0, remainingBalance)Math.ceil();
+        remainingField.value = Math.ceil(Math.max(0, remainingBalance));
       }
     }
 
@@ -1721,7 +1721,7 @@ const defaultConfig = {
       const totalWeightEl = document.getElementById('challanTotalWeight');
       const totalAmountEl = document.getElementById('challanTotalLRAmount');
       
-      if (totalWeightEl) totalWeightEl.textContent = `${totalWeightMath.ceil()} T`;
+      if (totalWeightEl) totalWeightEl.textContent = `${Math.ceil(totalWeight)} T`;
       if (totalAmountEl) totalAmountEl.textContent = `₹${totalAmount.toLocaleString()}`;
       
       // Update main form fields
@@ -1729,11 +1729,11 @@ const defaultConfig = {
       if (form) {
         // Update weight field
         const weightField = document.getElementById('challanWeight');
-        if (weightField) weightField.value = totalWeightMath.ceil();
+        if (weightField) weightField.value = Math.ceil(totalWeight);
         
         // Update total amount field
         const totalField = document.getElementById('challanTotalAmount');
-        if (totalField) totalField.value = totalAmountMath.ceil();
+        if (totalField) totalField.value = Math.ceil(totalAmount);
         
         // Recalculate balance
         calculateChallanBalanceAmount();
@@ -6394,7 +6394,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(lr.weight) || 0;
           const companyRate = parseFloat(lr.companyRate) || 0;
           if (weight > 0) {
-            const ratePerTonne = (companyRate / weight)Math.ceil();
+            const ratePerTonne = Math.ceil(companyRate / weight);
             document.getElementById('lrRatePerTonne').value = ratePerTonne;
           }
           
@@ -6506,7 +6506,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(lr.weight) || 0;
           const freightAmount = parseFloat(lr.freightAmount) || 0;
           if (weight > 0) {
-            const ratePerTonne = (freightAmount / weight)Math.ceil();
+            const ratePerTonne = Math.ceil(freightAmount / weight);
             document.getElementById('nbLrRatePerTonne').value = ratePerTonne;
           }
           
@@ -6585,7 +6585,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(challan.weight) || 0;
           const truckRate = parseFloat(challan.truckRate) || 0;
           if (weight > 0) {
-            const ratePerTonne = (truckRate / weight)Math.ceil();
+            const ratePerTonne = Math.ceil(truckRate / weight);
             document.getElementById('challanRatePerTonne').value = ratePerTonne;
           }
           
@@ -7990,7 +7990,7 @@ ${payment.paymentNotes || 'No additional notes'}
       const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
       const tdsPercent = parseFloat(document.getElementById('tdsPercentage').value) || 0;
       const tdsAmount = (amount * tdsPercent) / 100;
-      document.getElementById('tdsAmount').value = tdsAmountMath.ceil();
+      document.getElementById('tdsAmount').value = Math.ceil(tdsAmount);
       calculateNetAmount();
     }
     
@@ -7998,7 +7998,7 @@ ${payment.paymentNotes || 'No additional notes'}
       const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
       const gstPercent = parseFloat(document.getElementById('gstPercentage').value) || 0;
       const gstAmount = (amount * gstPercent) / 100;
-      document.getElementById('gstAmount').value = gstAmountMath.ceil();
+      document.getElementById('gstAmount').value = Math.ceil(gstAmount);
       calculateNetAmount();
     }
     
@@ -8009,7 +8009,7 @@ ${payment.paymentNotes || 'No additional notes'}
       
       // Net = Gross - TDS + GST (for most cases)
       const netAmount = amount - tdsAmount + gstAmount;
-      document.getElementById('netAmount').value = netAmountMath.ceil();
+      document.getElementById('netAmount').value = Math.ceil(netAmount);
     }
     
     function validatePaymentAmount() {
@@ -8616,7 +8616,7 @@ if everything is correct.
             <td>${productName}</td>
             <td class="center">${fromLocation}</td>
             <td class="center">${toLocation}</td>
-            <td class="right">${weightMath.ceil()}</td>
+            <td class="right">${Math.ceil(weight)}</td>
             <td class="right">₹${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
             <td class="right">₹${subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
           </tr>
