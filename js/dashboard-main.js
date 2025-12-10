@@ -10,30 +10,30 @@ const defaultConfig = {
     function calculateLRTotal() {
       const weight = parseFloat(document.getElementById('lrWeight')?.value) || 0;
       const ratePerTonne = parseFloat(document.getElementById('lrRatePerTonne')?.value) || 0;
-      const totalAmount = weight * ratePerTonne;
+      const totalAmount =  Math.ceil(weight * ratePerTonne);
       const totalField = document.getElementById('lrTotalAmount');
       if (totalField) {
-        totalField.value = totalAmount.toFixed(2);
+        totalField.value = totalAmountMath.ceil();
       }
     }
     
     function calculateNonBookingLRTotal() {
       const weight = parseFloat(document.getElementById('nbLrWeight')?.value) || 0;
       const ratePerTonne = parseFloat(document.getElementById('nbLrRatePerTonne')?.value) || 0;
-      const totalAmount = weight * ratePerTonne;
+      const totalAmount =  Math.ceil(weight * ratePerTonne);
       const totalField = document.getElementById('nbLrTotalAmount');
       if (totalField) {
-        totalField.value = totalAmount.toFixed(2);
+        totalField.value = totalAmountMath.ceil();
       }
     }
     
     function calculateChallanTotal() {
       const weight = parseFloat(document.getElementById('challanWeight')?.value) || 0;
       const ratePerTonne = parseFloat(document.getElementById('challanRatePerTonne')?.value) || 0;
-      const totalAmount = weight * ratePerTonne;
+      const totalAmount =  Math.ceil(weight * ratePerTonne);
       const totalField = document.getElementById('challanTotalAmount');
       if (totalField) {
-        totalField.value = totalAmount.toFixed(2);
+        totalField.value = totalAmountMath.ceil();
       }
       // Also calculate balance amount when total changes
       calculateChallanBalanceAmount();
@@ -44,11 +44,11 @@ const defaultConfig = {
       const advance = parseFloat(document.getElementById('challanAdvance')?.value) || 0;
       
       // Balance Amount to Pay = Total Truck Amount - Advance
-      const balanceAmount = totalAmount - advance;
+      const balanceAmount = Math.ceil(totalAmount - advance);
       
       const balanceField = document.getElementById('challanBalanceAmount');
       if (balanceField) {
-        balanceField.value = Math.max(0, balanceAmount).toFixed(2);
+        balanceField.value = Math.max(0, balanceAmount)Math.ceil();
       }
       
       // Also calculate remaining balance when balance amount changes
@@ -72,7 +72,7 @@ const defaultConfig = {
       
       const remainingField = document.getElementById('challanRemainingBalance');
       if (remainingField) {
-        remainingField.value = Math.max(0, remainingBalance).toFixed(2);
+        remainingField.value = Math.max(0, remainingBalance)Math.ceil();
       }
     }
 
@@ -1721,7 +1721,7 @@ const defaultConfig = {
       const totalWeightEl = document.getElementById('challanTotalWeight');
       const totalAmountEl = document.getElementById('challanTotalLRAmount');
       
-      if (totalWeightEl) totalWeightEl.textContent = `${totalWeight.toFixed(2)} T`;
+      if (totalWeightEl) totalWeightEl.textContent = `${totalWeightMath.ceil()} T`;
       if (totalAmountEl) totalAmountEl.textContent = `₹${totalAmount.toLocaleString()}`;
       
       // Update main form fields
@@ -1729,11 +1729,11 @@ const defaultConfig = {
       if (form) {
         // Update weight field
         const weightField = document.getElementById('challanWeight');
-        if (weightField) weightField.value = totalWeight.toFixed(2);
+        if (weightField) weightField.value = totalWeightMath.ceil();
         
         // Update total amount field
         const totalField = document.getElementById('challanTotalAmount');
-        if (totalField) totalField.value = totalAmount.toFixed(2);
+        if (totalField) totalField.value = totalAmountMath.ceil();
         
         // Recalculate balance
         calculateChallanBalanceAmount();
@@ -6394,7 +6394,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(lr.weight) || 0;
           const companyRate = parseFloat(lr.companyRate) || 0;
           if (weight > 0) {
-            const ratePerTonne = (companyRate / weight).toFixed(2);
+            const ratePerTonne = (companyRate / weight)Math.ceil();
             document.getElementById('lrRatePerTonne').value = ratePerTonne;
           }
           
@@ -6506,7 +6506,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(lr.weight) || 0;
           const freightAmount = parseFloat(lr.freightAmount) || 0;
           if (weight > 0) {
-            const ratePerTonne = (freightAmount / weight).toFixed(2);
+            const ratePerTonne = (freightAmount / weight)Math.ceil();
             document.getElementById('nbLrRatePerTonne').value = ratePerTonne;
           }
           
@@ -6585,7 +6585,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(challan.weight) || 0;
           const truckRate = parseFloat(challan.truckRate) || 0;
           if (weight > 0) {
-            const ratePerTonne = (truckRate / weight).toFixed(2);
+            const ratePerTonne = (truckRate / weight)Math.ceil();
             document.getElementById('challanRatePerTonne').value = ratePerTonne;
           }
           
@@ -7990,7 +7990,7 @@ ${payment.paymentNotes || 'No additional notes'}
       const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
       const tdsPercent = parseFloat(document.getElementById('tdsPercentage').value) || 0;
       const tdsAmount = (amount * tdsPercent) / 100;
-      document.getElementById('tdsAmount').value = tdsAmount.toFixed(2);
+      document.getElementById('tdsAmount').value = tdsAmountMath.ceil();
       calculateNetAmount();
     }
     
@@ -7998,7 +7998,7 @@ ${payment.paymentNotes || 'No additional notes'}
       const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
       const gstPercent = parseFloat(document.getElementById('gstPercentage').value) || 0;
       const gstAmount = (amount * gstPercent) / 100;
-      document.getElementById('gstAmount').value = gstAmount.toFixed(2);
+      document.getElementById('gstAmount').value = gstAmountMath.ceil();
       calculateNetAmount();
     }
     
@@ -8009,7 +8009,7 @@ ${payment.paymentNotes || 'No additional notes'}
       
       // Net = Gross - TDS + GST (for most cases)
       const netAmount = amount - tdsAmount + gstAmount;
-      document.getElementById('netAmount').value = netAmount.toFixed(2);
+      document.getElementById('netAmount').value = netAmountMath.ceil();
     }
     
     function validatePaymentAmount() {
@@ -8616,7 +8616,7 @@ if everything is correct.
             <td>${productName}</td>
             <td class="center">${fromLocation}</td>
             <td class="center">${toLocation}</td>
-            <td class="right">${weight.toFixed(2)}</td>
+            <td class="right">${weightMath.ceil()}</td>
             <td class="right">₹${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
             <td class="right">₹${subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
           </tr>
