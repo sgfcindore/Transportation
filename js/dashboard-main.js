@@ -1589,7 +1589,7 @@ if (dailyRegisterDateField) {
 const challanDateField = document.getElementById('challanDate');
 if (challanDateField && !challanDateField.value) {
   challanDateField.value = new Date().toISOString().split('T')[0];
-}orm.date.value = entry.date || new Date().toISOString().split('T')[0];
+form.date.value = entry.date || new Date().toISOString().split('T')[0];
         }
         
         // Store daily entry ID
