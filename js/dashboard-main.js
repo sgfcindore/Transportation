@@ -3995,7 +3995,7 @@ function populateDailyEntrySelect() {
         const days = daysDiff(entry.date);
         if (days >= 3) {
           // Check if this entry has "To Be Billed" payment category
-          const isToBeBilled = entry.paymentCategory === 'To Be Billed';
+          const isToBeBilled = entry.bookingType === 'To Be Billed';
           if (isToBeBilled) {
             // Check if advance has been provided - look in both entry fields AND payment_transaction records
             const hasAdvanceInEntry = (entry.advanceFromCompany && entry.advanceFromCompany > 0) || 
