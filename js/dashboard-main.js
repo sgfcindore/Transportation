@@ -1424,10 +1424,12 @@ const defaultConfig = {
       const ratePerTonne = totalWeight > 0 ? (totalAmount / totalWeight) : (parseFloat(formData.get('ratePerTonne')) || 0);
       
       const data = {
-        type: 'challan_book',
-        challanNumber: formData.get('challanNumber'),
-        truckNumber: formData.get('truckNumber'),
-        date: formData.get('date'),
+  type: 'challan_book',
+  challanNumber: formData.get('challanNumber'),
+  truckNumber: formData.get('truckNumber'),
+  dailyRegisterDate: formData.get('dailyRegisterDate'),
+  challanDate: formData.get('challanDate'),
+  date: formData.get('challanDate'), // Keep 'date' field for backward compatibility
         from: formData.get('from'),
         to: formData.get('to'),
         // Individual LR details
@@ -1577,9 +1579,17 @@ const defaultConfig = {
           form.to.value = entry.to || '';
         }
         
-        // IMPORTANT: Auto-fill the date field
-        if (form.date) {
-          form.date.value = entry.date || new Date().toISOString().split('T')[0];
+        // Auto-fill Daily Register Date (read-only reference)
+const dailyRegisterDateField = document.getElementById('challanDailyRegisterDate');
+if (dailyRegisterDateField) {
+  dailyRegisterDateField.value = entry.date || '';
+}
+
+// Set Challan Date to today by default
+const challanDateField = document.getElementById('challanDate');
+if (challanDateField && !challanDateField.value) {
+  challanDateField.value = new Date().toISOString().split('T')[0];
+}orm.date.value = entry.date || new Date().toISOString().split('T')[0];
         }
         
         // Store daily entry ID
@@ -4717,7 +4727,7 @@ function updateDailyRegisterList() {
         const remainingBalance = entry.remainingBalance || 0;
         
         // FIX: Get date from challan entry, or from linked daily register if not available
-        let displayDate = entry.date || '';
+        let displayDate = entry.challanDate || entry.date || '';
         if (!displayDate && entry.dailyEntryId) {
           const dailyEntry = allRecords.find(r => r.__backendId === entry.dailyEntryId);
           if (dailyEntry && dailyEntry.date) {
@@ -6576,7 +6586,16 @@ function updateDailyRegisterList() {
           // Populate all form fields
           document.getElementById('challanNumber').value = challan.challanNumber || '';
           form.truckNumber.value = challan.truckNumber || '';
-          form.date.value = challan.date || '';
+         const dailyRegisterDateField = document.getElementById('challanDailyRegisterDate');
+if (dailyRegisterDateField) {
+  dailyRegisterDateField.value = challan.dailyRegisterDate || '';
+}
+
+// Set Challan Date
+const challanDateField = document.getElementById('challanDate');
+if (challanDateField) {
+  challanDateField.value = challan.challanDate || challan.date || '';
+}
           form.from.value = challan.from || '';
           form.to.value = challan.to || '';
           form.weight.value = challan.weight || 0;
