@@ -1721,7 +1721,7 @@ const defaultConfig = {
       const totalWeightEl = document.getElementById('challanTotalWeight');
       const totalAmountEl = document.getElementById('challanTotalLRAmount');
       
-      if (totalWeightEl) totalWeightEl.textContent = `${Math.ceil(totalWeight)} T`;
+      if (totalWeightEl) totalWeightEl.textContent = `${totalWeight.toFixed(2)} T`;
       if (totalAmountEl) totalAmountEl.textContent = `₹${totalAmount.toLocaleString()}`;
       
       // Update main form fields
@@ -1729,7 +1729,7 @@ const defaultConfig = {
       if (form) {
         // Update weight field
         const weightField = document.getElementById('challanWeight');
-        if (weightField) weightField.value = Math.ceil(totalWeight);
+        if (weightField) weightField.value = totalWeight.toFixed(2);
         
         // Update total amount field
         const totalField = document.getElementById('challanTotalAmount');
@@ -6394,7 +6394,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(lr.weight) || 0;
           const companyRate = parseFloat(lr.companyRate) || 0;
           if (weight > 0) {
-            const ratePerTonne = Math.ceil(companyRate / weight);
+            const ratePerTonne = (companyRate / weight).toFixed(2);
             document.getElementById('lrRatePerTonne').value = ratePerTonne;
           }
           
@@ -6506,7 +6506,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(lr.weight) || 0;
           const freightAmount = parseFloat(lr.freightAmount) || 0;
           if (weight > 0) {
-            const ratePerTonne = Math.ceil(freightAmount / weight);
+            const ratePerTonne = (freightAmount / weight).toFixed(2);
             document.getElementById('nbLrRatePerTonne').value = ratePerTonne;
           }
           
@@ -6585,7 +6585,7 @@ function updateDailyRegisterList() {
           const weight = parseFloat(challan.weight) || 0;
           const truckRate = parseFloat(challan.truckRate) || 0;
           if (weight > 0) {
-            const ratePerTonne = Math.ceil(truckRate / weight);
+            const ratePerTonne = (truckRate / weight).toFixed(2);
             document.getElementById('challanRatePerTonne').value = ratePerTonne;
           }
           
