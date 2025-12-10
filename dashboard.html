@@ -243,9 +243,13 @@
         <!-- Basic Information Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-            <input type="date" name="date" required class="input-field w-full">
-          </div>
+  <label class="block text-sm font-medium text-gray-700 mb-2">Daily Register Date</label>
+  <input type="date" name="dailyRegisterDate" id="challanDailyRegisterDate" readonly class="input-field w-full bg-gray-100 cursor-not-allowed" title="Auto-filled from Daily Register">
+</div>
+<div>
+  <label class="block text-sm font-medium text-gray-700 mb-2">Challan Date *</label>
+  <input type="date" name="challanDate" id="challanDate" required class="input-field w-full">
+</div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Truck Number *</label>
             <select name="truckNumber" required class="input-field w-full" id="dailyTruckSelect">
