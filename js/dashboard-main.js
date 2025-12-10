@@ -245,6 +245,7 @@ const defaultConfig = {
         toggleBtn.classList.remove('btn-primary');
         toggleBtn.classList.add('btn-secondary');
         formSection.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => populateCompanySelects(), 50);
       } else {
         formSection.classList.add('hidden');
         toggleBtn.textContent = '➕ Add New Entry';
