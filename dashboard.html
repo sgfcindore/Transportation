@@ -746,8 +746,35 @@
        </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">Truck Number *</label> <input type="text" name="truckNumber" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
        </div>
-       <div><label class="block text-sm font-medium text-gray-700 mb-2">Date *</label> <input type="date" name="date" required readonly class="input-field w-full bg-gray-50">
-       </div>
+       <!-- Daily Register Date (Read-only reference) -->
+<div>
+  <label class="block text-sm font-medium text-gray-700 mb-2">
+    📅 Daily Register Date
+    <span class="text-xs text-gray-500 font-normal">(Auto-filled)</span>
+  </label>
+  <input 
+    type="date" 
+    id="challanDailyRegisterDate" 
+    name="dailyRegisterDate" 
+    class="input-field w-full bg-gray-100 cursor-not-allowed" 
+    readonly
+  >
+</div>
+
+<!-- Challan Date (Editable official date) -->
+<div>
+  <label class="block text-sm font-medium text-gray-700 mb-2">
+    📋 Challan Date *
+    <span class="text-xs text-blue-600 font-normal">(Official date)</span>
+  </label>
+  <input 
+    type="date" 
+    id="challanDate" 
+    name="challanDate" 
+    required 
+    class="input-field w-full"
+  >
+</div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">From *</label> <input type="text" name="from" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
        </div>
        <div><label class="block text-sm font-medium text-gray-700 mb-2">To *</label> <input type="text" name="to" required readonly class="input-field w-full bg-gray-50" placeholder="Auto-filled from Daily Register">
