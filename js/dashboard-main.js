@@ -4581,8 +4581,8 @@ function updateDailyRegisterList() {
             <td>
               <div class="flex gap-1">
                 <button onclick="viewBookingLRDocument('${lr.__backendId}')" class="text-blue-600 hover:text-blue-800 text-xs" title="View">👁️</button>
-                <button onclick="editBookingLR('${lr.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
-                <button onclick="printRecord('${lr.__backendId}', 'booking_lr')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
+<button onclick="editBookingLR('${lr.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
+<button onclick="printBookingLRById('${lr.__backendId}')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
                 <button onclick="deleteRecord('${lr.__backendId}')" class="text-red-600 hover:text-red-800 text-xs" title="Delete">🗑️</button>
               </div>
             </td>
@@ -4662,8 +4662,8 @@ function updateDailyRegisterList() {
           <td>
             <div class="flex gap-1">
               <button onclick="viewNonBookingLRDocument('${lr.__backendId}')" class="text-blue-600 hover:text-blue-800 text-xs" title="View">👁️</button>
-              <button onclick="editNonBookingLR('${lr.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
-              <button onclick="printRecord('${lr.__backendId}', 'non_booking_lr')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
+<button onclick="editNonBookingLR('${lr.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
+<button onclick="printNonBookingLRById('${lr.__backendId}')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
               <button onclick="deleteRecord('${lr.__backendId}')" class="text-red-600 hover:text-red-800 text-xs" title="Delete">🗑️</button>
             </div>
           </td>
