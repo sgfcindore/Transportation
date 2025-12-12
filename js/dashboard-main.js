@@ -4776,9 +4776,9 @@ function updateDailyRegisterList() {
             <td><span class="status-badge ${getStatusClass(entry.status)}">${entry.status || 'Pending'}</span></td>
             <td>
               <div class="flex gap-1">
-                <button onclick="viewRecord('${entry.__backendId}')" class="text-blue-600 hover:text-blue-800 text-xs" title="View">👁️</button>
-                <button onclick="editChallan('${entry.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
-                <button onclick="printRecord('${entry.__backendId}', 'challan_book')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
+                <button onclick="viewChallanDocument('${entry.__backendId}')" class="text-blue-600 hover:text-blue-800 text-xs" title="View">👁️</button>
+<button onclick="editChallan('${entry.__backendId}')" class="text-green-600 hover:text-green-800 text-xs" title="Edit">✏️</button>
+<button onclick="printChallanDocumentById('${entry.__backendId}')" class="text-purple-600 hover:text-purple-800 text-xs" title="Print">🖨️</button>
                 <button onclick="deleteRecord('${entry.__backendId}')" class="text-red-600 hover:text-red-800 text-xs" title="Delete">🗑️</button>
               </div>
             </td>
